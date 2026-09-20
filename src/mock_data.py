@@ -1,0 +1,377 @@
+"""Mock data generator for motor claims triage system."""
+
+from datetime import date, datetime
+
+from src.models import (
+    AccidentDetails,
+    Claim,
+    CoverageType,
+    DocumentMetadata,
+    DriverDetails,
+    Policy,
+    RepairEstimate,
+    VehicleDetails,
+)
+
+POLICIES = [
+    Policy(
+        policy_number="POL-2024-001",
+        coverage_type=CoverageType.COMPREHENSIVE,
+        excess=500,
+        max_sum_insured=300000,
+        excluded_drivers=["John Smith"],
+        excluded_uses=["rental", "ride-hailing"],
+        policy_start_date=date(2024, 1, 1),
+        policy_end_date=date(2025, 1, 1),
+        vehicle_registration="A-12345",
+    ),
+    Policy(
+        policy_number="POL-2024-002",
+        coverage_type=CoverageType.THIRD_PARTY,
+        excess=300,
+        max_sum_insured=100000,
+        excluded_drivers=[],
+        excluded_uses=["ride-hailing"],
+        policy_start_date=date(2024, 3, 15),
+        policy_end_date=date(2025, 3, 15),
+        vehicle_registration="B-67890",
+    ),
+    Policy(
+        policy_number="POL-2024-003",
+        coverage_type=CoverageType.COMPREHENSIVE,
+        excess=750,
+        max_sum_insured=500000,
+        excluded_drivers=["Omar Abdullah"],
+        excluded_uses=[],
+        policy_start_date=date(2024, 6, 1),
+        policy_end_date=date(2025, 6, 1),
+        vehicle_registration="C-11111",
+    ),
+    Policy(
+        policy_number="POL-2024-004",
+        coverage_type=CoverageType.COMPREHENSIVE,
+        excess=500,
+        max_sum_insured=250000,
+        excluded_drivers=[],
+        excluded_uses=["taxi"],
+        policy_start_date=date(2024, 2, 1),
+        policy_end_date=date(2025, 2, 1),
+        vehicle_registration="D-22222",
+    ),
+    Policy(
+        policy_number="POL-2024-005",
+        coverage_type=CoverageType.THIRD_PARTY,
+        excess=200,
+        max_sum_insured=80000,
+        excluded_drivers=["Emily Chen"],
+        excluded_uses=["delivery"],
+        policy_start_date=date(2024, 7, 1),
+        policy_end_date=date(2025, 7, 1),
+        vehicle_registration="E-33333",
+    ),
+    Policy(
+        policy_number="POL-2024-006",
+        coverage_type=CoverageType.COMPREHENSIVE,
+        excess=1000,
+        max_sum_insured=400000,
+        excluded_drivers=[],
+        excluded_uses=["ride-hailing", "rental"],
+        policy_start_date=date(2024, 4, 1),
+        policy_end_date=date(2025, 4, 1),
+        vehicle_registration="F-44444",
+    ),
+    Policy(
+        policy_number="POL-2024-007",
+        coverage_type=CoverageType.COMPREHENSIVE,
+        excess=500,
+        max_sum_insured=350000,
+        excluded_drivers=["Ali Al-Maktoum"],
+        excluded_uses=[],
+        policy_start_date=date(2024, 5, 15),
+        policy_end_date=date(2025, 5, 15),
+        vehicle_registration="G-55555",
+    ),
+    Policy(
+        policy_number="POL-2024-008",
+        coverage_type=CoverageType.THIRD_PARTY,
+        excess=250,
+        max_sum_insured=90000,
+        excluded_drivers=[],
+        excluded_uses=["taxi", "delivery"],
+        policy_start_date=date(2024, 8, 1),
+        policy_end_date=date(2025, 8, 1),
+        vehicle_registration="H-66666",
+    ),
+]
+
+
+def _build_claim(
+    claim_id: str,
+    policy: Policy,
+    driver_name: str,
+    driver_age: int,
+    license_years: int,
+    vehicle_make: str,
+    vehicle_model: str,
+    vehicle_year: int,
+    vehicle_value: float,
+    days_ago: int,
+    location: str,
+    description: str,
+    repair_cost: float,
+    garage: str,
+    vehicles_involved: int = 1,
+    injury: bool = False,
+    dispute: bool = False,
+    extra_docs: list[dict] | None = None,
+) -> Claim:
+    base = datetime(2024, 9, 15)
+    accident_date = base.replace(day=max(1, base.day - days_ago))
+
+    docs = [
+        DocumentMetadata(
+            doc_type="police_report",
+            description=f"Police report filed at {location}",
+            uploaded_at=accident_date,
+        ),
+        DocumentMetadata(
+            doc_type="photo",
+            description=f"Photos of vehicle damage at {location}",
+            uploaded_at=accident_date,
+        ),
+    ]
+    if extra_docs:
+        for d in extra_docs:
+            docs.append(DocumentMetadata(**d))
+
+    return Claim(
+        claim_id=claim_id,
+        policy_number=policy.policy_number,
+        vehicle=VehicleDetails(
+            make=vehicle_make,
+            model=vehicle_model,
+            year=vehicle_year,
+            registration_number=policy.vehicle_registration,
+            estimated_value=vehicle_value,
+        ),
+        driver=DriverDetails(
+            name=driver_name,
+            age=driver_age,
+            license_tenure_years=license_years,
+        ),
+        accident=AccidentDetails(
+            date=accident_date,
+            location=location,
+            description=description,
+            police_report_summary=f"Officers responded to {location}. {description}",
+            num_vehicles_involved=vehicles_involved,
+            injury_reported=injury,
+            liability_disputed=dispute,
+        ),
+        documents=docs,
+        repair_estimate=RepairEstimate(
+            estimated_cost=repair_cost,
+            garage_name=garage,
+            items=["Body repair", "Paint work", "Parts replacement"],
+        ),
+        submitted_at=accident_date,
+    )
+
+
+def generate_claims() -> list[Claim]:
+    return [
+        # --- FAST-TRACK CANDIDATES (low complexity, low fraud) ---
+        _build_claim(
+            "CLM-001", POLICIES[0], "Ahmed Al-Rashid", 32, 8,
+            "Toyota", "Camry", 2022, 85000,
+            days_ago=5, location="Sheikh Zayed Road, Dubai",
+            description="Rear-ended at traffic light. Minor bumper damage.",
+            repair_cost=3500, garage="Al Futtaim Auto",
+        ),
+        _build_claim(
+            "CLM-002", POLICIES[1], "Mohammed Hassan", 45, 20,
+            "Nissan", "Patrol", 2023, 195000,
+            days_ago=3, location="Al Khalidiyah, Abu Dhabi",
+            description="Backing into parked car in mall parking.",
+            repair_cost=1200, garage="Abu Dhabi Motors",
+        ),
+        _build_claim(
+            "CLM-003", POLICIES[2], "Sarah Johnson", 28, 5,
+            "Honda", "Civic", 2021, 72000,
+            days_ago=7, location="King Faisal Road, Sharjah",
+            description="Hit and run in parking lot. Front fender damaged.",
+            repair_cost=4500, garage="Sharjah Auto Care",
+        ),
+        _build_claim(
+            "CLM-004", POLICIES[3], "Fatima Al-Zahra", 35, 10,
+            "Mercedes", "C-Class", 2022, 220000,
+            days_ago=4, location="Corniche Road, Ajman",
+            description="Minor scratch while parking. No other vehicles.",
+            repair_cost=2800, garage="Ajman Garage",
+        ),
+        _build_claim(
+            "CLM-005", POLICIES[5], "Khalid Al-Nuaimi", 38, 12,
+            "Kia", "Sportage", 2022, 95000,
+            days_ago=6, location="Hamdan Street, Abu Dhabi",
+            description="Small dent on rear bumper from low-speed impact.",
+            repair_cost=1800, garage="Fast Fix Auto",
+        ),
+        # --- STANDARD REVIEW (medium complexity) ---
+        _build_claim(
+            "CLM-006", POLICIES[3], "Fatima Al-Zahra", 35, 10,
+            "Mercedes", "C-Class", 2022, 220000,
+            days_ago=10, location="E311 Highway, Dubai",
+            description="Lane change collision. Dispute over right of way.",
+            repair_cost=12000, garage="Gargash Auto",
+            vehicles_involved=2, dispute=True,
+        ),
+        _build_claim(
+            "CLM-007", POLICIES[0], "Ahmed Al-Rashid", 32, 8,
+            "Toyota", "Camry", 2022, 85000,
+            days_ago=8, location="E44 Highway, Abu Dhabi",
+            description="Side collision at intersection. Other vehicle ran red light.",
+            repair_cost=8500, garage="Service Center AD",
+            vehicles_involved=2, injury=True,
+        ),
+        _build_claim(
+            "CLM-008", POLICIES[4], "John Smith", 41, 15,
+            "Hyundai", "Elantra", 2023, 65000,
+            days_ago=9, location="Al Nahda, Sharjah",
+            description="Hail storm damage to roof and bonnet.",
+            repair_cost=15000, garage="Sharjah Body Shop",
+            extra_docs=[{
+                "doc_type": "weather_report",
+                "description": "Weather report confirming hail storm",
+            }],
+        ),
+        _build_claim(
+            "CLM-009", POLICIES[6], "Priya Sharma", 29, 4,
+            "Ford", "Explorer", 2022, 180000,
+            days_ago=11, location="Jumeirah Beach Road, Dubai",
+            description="Front collision with concrete barrier. Driver distracted.",
+            repair_cost=22000, garage="Dewan Auto Care",
+            injury=True,
+        ),
+        _build_claim(
+            "CLM-010", POLICIES[7], "Mohammed Hassan", 45, 20,
+            "Chevrolet", "Tahoe", 2023, 220000,
+            days_ago=13, location="Al Rigga, Dubai",
+            description="Multi-vehicle pileup on highway. Several cars involved.",
+            repair_cost=35000, garage="Galadari Automobiles",
+            vehicles_involved=3, injury=True, dispute=True,
+        ),
+        # --- INVESTIGATE (high fraud risk or coverage issues) ---
+        _build_claim(
+            "CLM-011", POLICIES[0], "Omar Abdullah", 23, 1,
+            "BMW", "5 Series", 2023, 280000,
+            days_ago=2, location="Al Nahda, Sharjah",
+            description="Single vehicle accident - hit barrier on Sheikh Zayed Road.",
+            repair_cost=45000, garage="BMW Service Center",
+        ),
+        _build_claim(
+            "CLM-012", POLICIES[6], "Priya Sharma", 29, 4,
+            "Toyota", "Land Cruiser", 2023, 250000,
+            days_ago=15, location="Mariam Island, Ras Al Khaimah",
+            description="Front collision with concrete barrier. Driver distracted.",
+            repair_cost=62000, garage="RAK Auto Workshop",
+            injury=True,
+        ),
+        _build_claim(
+            "CLM-013", POLICIES[0], "Emily Chen", 26, 3,
+            "Toyota", "Camry", 2022, 85000,
+            days_ago=4, location="King Faisal Road, Sharjah",
+            description="Side swipe during lane merge on E311.",
+            repair_cost=5000, garage="Sharjah Auto Care",
+        ),
+        _build_claim(
+            "CLM-014", POLICIES[1], "Mohammed Hassan", 45, 20,
+            "Nissan", "Patrol", 2023, 195000,
+            days_ago=6, location="Mariam Island, Ras Al Khaimah",
+            description="Flood damage after heavy rain in Dubai.",
+            repair_cost=8000, garage="RAK Auto Workshop",
+        ),
+        # --- MORE MIXED CLAIMS ---
+        _build_claim(
+            "CLM-015", POLICIES[2], "Khalid Al-Nuaimi", 38, 12,
+            "Ford", "Explorer", 2022, 180000,
+            days_ago=9, location="E311 Highway, Dubai",
+            description="Hail storm damage to roof and bonnet.",
+            repair_cost=18000, garage="Dewan Auto Care",
+        ),
+        _build_claim(
+            "CLM-016", POLICIES[3], "Ahmed Al-Rashid", 32, 8,
+            "Chevrolet", "Tahoe", 2023, 220000,
+            days_ago=11, location="E44 Highway, Abu Dhabi",
+            description="Theft of vehicle accessories from parked car.",
+            repair_cost=15000, garage="Service Center AD",
+            extra_docs=[{
+                "doc_type": "theft_report",
+                "description": "Theft report filed with Abu Dhabi Police",
+            }],
+        ),
+        _build_claim(
+            "CLM-017", POLICIES[5], "Sarah Johnson", 28, 5,
+            "BMW", "5 Series", 2023, 280000,
+            days_ago=14, location="Sheikh Mohammed Bin Rashid Boulevard, Dubai",
+            description="Hit and run in parking lot. Front fender damaged.",
+            repair_cost=28000, garage="Gargash Auto",
+        ),
+        _build_claim(
+            "CLM-018", POLICIES[7], "Fatima Al-Zahra", 35, 10,
+            "Hyundai", "Elantra", 2023, 65000,
+            days_ago=7, location="Al Rigga, Dubai",
+            description="Rear-ended at traffic light. Minor bumper damage.",
+            repair_cost=3200, garage="Al Futtaim Auto",
+        ),
+        _build_claim(
+            "CLM-019", POLICIES[2], "Omar Abdullah", 23, 1,
+            "Honda", "Civic", 2021, 72000,
+            days_ago=20, location="Corniche Road, Ajman",
+            description="Single vehicle accident - hit barrier on Sheikh Zayed Road.",
+            repair_cost=38000, garage="Ajman Garage",
+        ),
+        _build_claim(
+            "CLM-020", POLICIES[4], "Emily Chen", 26, 3,
+            "Kia", "Sportage", 2022, 95000,
+            days_ago=5, location="Hamdan Street, Abu Dhabi",
+            description="Backing into parked car in mall parking.",
+            repair_cost=2200, garage="Abu Dhabi Motors",
+        ),
+        _build_claim(
+            "CLM-021", POLICIES[0], "Ahmed Al-Rashid", 32, 8,
+            "Toyota", "Camry", 2022, 85000,
+            days_ago=30, location="Sheikh Zayed Road, Dubai",
+            description="Minor dent on rear bumper from low-speed impact.",
+            repair_cost=1500, garage="Al Futtaim Auto",
+        ),
+        _build_claim(
+            "CLM-022", POLICIES[6], "Ali Al-Maktoum", 52, 25,
+            "Ford", "Explorer", 2022, 180000,
+            days_ago=3, location="Jumeirah Beach Road, Dubai",
+            description="Side collision at intersection. Other vehicle ran red light.",
+            repair_cost=9500, garage="Dewan Auto Care",
+        ),
+        _build_claim(
+            "CLM-023", POLICIES[3], "Priya Sharma", 29, 4,
+            "Mercedes", "C-Class", 2022, 220000,
+            days_ago=18, location="Al Khalidiyah, Abu Dhabi",
+            description="Multi-vehicle pileup on highway. Several cars involved.",
+            repair_cost=42000, garage="Abu Dhabi Motors",
+            vehicles_involved=3, injury=True, dispute=True,
+        ),
+        _build_claim(
+            "CLM-024", POLICIES[1], "Mohammed Hassan", 45, 20,
+            "Nissan", "Patrol", 2023, 195000,
+            days_ago=25, location="King Faisal Road, Sharjah",
+            description="Lane change collision. Dispute over right of way.",
+            repair_cost=7500, garage="Sharjah Body Shop",
+            vehicles_involved=2, dispute=True,
+        ),
+        _build_claim(
+            "CLM-025", POLICIES[5], "Khalid Al-Nuaimi", 38, 12,
+            "Kia", "Sportage", 2022, 95000,
+            days_ago=2, location="Sheikh Mohammed Bin Rashid Boulevard, Dubai",
+            description="Flood damage after heavy rain in Dubai.",
+            repair_cost=25000, garage="Gargash Auto",
+        ),
+    ]
