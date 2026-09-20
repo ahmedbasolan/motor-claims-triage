@@ -1,0 +1,143 @@
+"""Complexity and fraud risk scoring for motor claims."""
+
+from datetime import timedelta
+
+from src.models import Claim, RiskLevel, ScoringResult
+
+
+def score_complexity(claim: Claim) -> tuple[RiskLevel, list[str]]:
+    """Score claim complexity based on multiple factors."""
+    score = 0
+    factors: list[str] = []
+
+    # Multiple vehicles involved
+    if claim.accident.num_vehicles_involved > 1:
+        score += 2
+        factors.append(f"Multiple vehicles involved ({claim.accident.num_vehicles_involved})")
+
+    # Injury reported
+    if claim.accident.injury_reported:
+        score += 3
+        factors.append("Injury reported - requires medical assessment")
+
+    # Liability disputed
+    if claim.accident.liability_disputed:
+        score += 2
+        factors.append("Liability disputed between parties")
+
+    # High repair cost relative to vehicle value
+    if claim.repair_estimate and claim.vehicle.estimated_value > 0:
+        cost_ratio = claim.repair_estimate.estimated_cost / claim.vehicle.estimated_value
+        if cost_ratio > 0.7:
+            score += 3
+            factors.append(
+                f"Repair cost ({cost_ratio:.0%} of vehicle value) indicates potential total loss"
+            )
+        elif cost_ratio > 0.4:
+            score += 1
+            factors.append(f"Repair cost is {cost_ratio:.0%} of vehicle value")
+
+    # Young driver with low experience
+    if claim.driver.age < 25 and claim.driver.license_tenure_years < 2:
+        score += 1
+        factors.append("Young driver with limited experience")
+
+    # Determine risk level
+    if score >= 5:
+        return RiskLevel.HIGH, factors
+    elif score >= 2:
+        return RiskLevel.MEDIUM, factors
+    return RiskLevel.LOW, factors
+
+
+def score_fraud_risk(
+    claim: Claim,
+    all_claims_for_driver: list[Claim] | None = None,
+) -> tuple[RiskLevel, list[str]]:
+    """Score fraud risk based on indicators."""
+    score = 0
+    factors: list[str] = []
+
+    # Very new policy + high claim amount
+    policy_age_days = (claim.accident.date.date() - claim.submitted_at.date()).days
+    if policy_age_days < 30:
+        if claim.repair_estimate and claim.repair_estimate.estimated_cost > 15000:
+            score += 3
+            factors.append(
+                f"New policy ({policy_age_days} days old) with high claim "
+                f"AED {claim.repair_estimate.estimated_cost:,.0f}"
+            )
+
+    # Repeated claims for same driver/vehicle in short period
+    if all_claims_for_driver:
+        recent_claims = [
+            c for c in all_claims_for_driver
+            if c.claim_id != claim.claim_id
+            and (claim.accident.date - c.accident.date) <= timedelta(days=90)
+        ]
+        if len(recent_claims) >= 2:
+            score += 3
+            factors.append(
+                f"{len(recent_claims)} previous claims in last 90 days for this driver"
+            )
+        elif len(recent_claims) == 1:
+            score += 1
+            factors.append("One previous claim in last 90 days for this driver")
+
+    # Inconsistent story detection (keyword-based)
+    inconsistency_keywords = {
+        "location": ["different location", "changed story", "inconsistent"],
+        "time": ["late report", "delayed report", "unclear timeline"],
+        "damage": ["damage doesn't match", "inconsistent damage", "suspicious damage"],
+        "cause": ["contradicting", "conflicting account", "varying details"],
+    }
+
+    desc_lower = claim.accident.description.lower()
+    if claim.accident.police_report_summary:
+        report_lower = claim.accident.police_report_summary.lower()
+        for category, keywords in inconsistency_keywords.items():
+            for keyword in keywords:
+                if keyword in desc_lower or keyword in report_lower:
+                    score += 2
+                    factors.append(f"Potential inconsistency detected: {category}")
+                    break
+
+    # High repair cost without clear documentation
+    if claim.repair_estimate:
+        if not claim.documents or len(claim.documents) < 2:
+            score += 1
+            factors.append("Limited documentation for high-value repair estimate")
+
+    # Determine risk level
+    if score >= 5:
+        return RiskLevel.HIGH, factors
+    elif score >= 2:
+        return RiskLevel.MEDIUM, factors
+    return RiskLevel.LOW, factors
+
+
+def score_claim(
+    claim: Claim,
+    all_claims_for_driver: list[Claim] | None = None,
+) -> ScoringResult:
+    """Generate comprehensive scoring for a claim."""
+    complexity_level, complexity_factors = score_complexity(claim)
+    fraud_level, fraud_factors = score_fraud_risk(claim, all_claims_for_driver)
+
+    # Overall risk is the higher of the two
+    risk_order = {RiskLevel.LOW: 0, RiskLevel.MEDIUM: 1, RiskLevel.HIGH: 2}
+    overall = (
+        RiskLevel.HIGH
+        if risk_order[complexity_level] >= 2 or risk_order[fraud_level] >= 2
+        else RiskLevel.MEDIUM
+        if risk_order[complexity_level] >= 1 or risk_order[fraud_level] >= 1
+        else RiskLevel.LOW
+    )
+
+    return ScoringResult(
+        complexity_score=complexity_level,
+        complexity_factors=complexity_factors,
+        fraud_risk_score=fraud_level,
+        fraud_risk_factors=fraud_factors,
+        overall_risk=overall,
+    )
