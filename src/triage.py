@@ -16,8 +16,9 @@ def triage_claim(
     # Step 1: Coverage check
     coverage = check_coverage(claim, policy)
 
-    # Step 2: Score complexity and fraud risk
-    scoring = score_claim(claim, all_claims_for_driver)
+    # Step 2: Score complexity and fraud risk. The policy is required: the
+    # new-policy fraud indicator measures how long the policy has been held.
+    scoring = score_claim(claim, all_claims_for_driver, policy)
 
     # Step 3: Generate recommendation
     recommendation = generate_recommendation(coverage, scoring)
