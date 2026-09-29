@@ -31,10 +31,7 @@ def generate_recommendation(
         return Recommendation.INVESTIGATE
 
     # Medium on either -> Standard review
-    if (
-        scoring.complexity_score == RiskLevel.MEDIUM
-        or scoring.fraud_risk_score == RiskLevel.MEDIUM
-    ):
+    if scoring.complexity_score == RiskLevel.MEDIUM or scoring.fraud_risk_score == RiskLevel.MEDIUM:
         return Recommendation.STANDARD_REVIEW
 
     # Low complexity, low fraud, clear coverage -> Fast track

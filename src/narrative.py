@@ -42,27 +42,19 @@ def generate_narrative(
             f"{claim.policy_number}."
         )
     else:
-        exclusions_str = ", ".join(
-            e.replace("_", " ") for e in coverage.exclusions_triggered
-        )
-        sections.append(
-            f"**Coverage:** Issue detected. Exclusions triggered: {exclusions_str}."
-        )
+        exclusions_str = ", ".join(e.replace("_", " ") for e in coverage.exclusions_triggered)
+        sections.append(f"**Coverage:** Issue detected. Exclusions triggered: {exclusions_str}.")
     sections.append("")
 
     # Complexity summary
-    sections.append(
-        f"**Complexity:** {RISK_LABELS[scoring.complexity_score]}"
-    )
+    sections.append(f"**Complexity:** {RISK_LABELS[scoring.complexity_score]}")
     if scoring.complexity_factors:
         for factor in scoring.complexity_factors[:3]:
             sections.append(f"  - {factor}")
     sections.append("")
 
     # Fraud risk summary
-    sections.append(
-        f"**Fraud Risk:** {RISK_LABELS[scoring.fraud_risk_score]}"
-    )
+    sections.append(f"**Fraud Risk:** {RISK_LABELS[scoring.fraud_risk_score]}")
     if scoring.fraud_risk_factors:
         for factor in scoring.fraud_risk_factors[:3]:
             sections.append(f"  - {factor}")
@@ -79,9 +71,7 @@ def generate_narrative(
     sections.append("")
 
     # Recommendation
-    sections.append(
-        f"**Recommendation:** {RECOMMENDATION_LABELS[recommendation]}"
-    )
+    sections.append(f"**Recommendation:** {RECOMMENDATION_LABELS[recommendation]}")
 
     # Final rationale
     if recommendation == Recommendation.FAST_TRACK:
