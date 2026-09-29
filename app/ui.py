@@ -135,16 +135,18 @@ for claim in ALL_CLAIMS:
         r = triage_claim(claim, p, dc)
         repair = claim.repair_estimate
         repair_str = f"AED {repair.estimated_cost:,.0f}" if repair else "N/A"
-        bulk_results.append({
-            "Claim ID": claim.claim_id,
-            "Driver": claim.driver.name,
-            "Vehicle": f"{claim.vehicle.year} {claim.vehicle.make}",
-            "Repair Cost": repair_str,
-            "Coverage": "Clear" if r.coverage.is_covered else "Issues",
-            "Complexity": r.scoring.complexity_score.value.upper(),
-            "Fraud Risk": r.scoring.fraud_risk_score.value.upper(),
-            "Recommendation": rec_labels[r.recommendation],
-        })
+        bulk_results.append(
+            {
+                "Claim ID": claim.claim_id,
+                "Driver": claim.driver.name,
+                "Vehicle": f"{claim.vehicle.year} {claim.vehicle.make}",
+                "Repair Cost": repair_str,
+                "Coverage": "Clear" if r.coverage.is_covered else "Issues",
+                "Complexity": r.scoring.complexity_score.value.upper(),
+                "Fraud Risk": r.scoring.fraud_risk_score.value.upper(),
+                "Recommendation": rec_labels[r.recommendation],
+            }
+        )
 
 st.dataframe(bulk_results, use_container_width=True)
 

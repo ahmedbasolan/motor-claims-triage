@@ -78,10 +78,7 @@ def triage_single_claim(claim: Claim):
         )
 
     # Find other claims for same driver to check repeated claims
-    driver_claims = [
-        c for c in MOCK_CLAIMS
-        if c.driver.name == claim.driver.name
-    ]
+    driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
 
     return triage_claim(claim, policy, driver_claims)
 
@@ -104,10 +101,7 @@ def triage_existing_claim(claim_id: str):
             detail=f"Policy {claim.policy_number} not found",
         )
 
-    driver_claims = [
-        c for c in MOCK_CLAIMS
-        if c.driver.name == claim.driver.name
-    ]
+    driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
 
     return triage_claim(claim, policy, driver_claims)
 
@@ -118,10 +112,7 @@ def triage_all_claims():
     for claim in MOCK_CLAIMS:
         policy = POLICY_MAP.get(claim.policy_number)
         if policy:
-            driver_claims = [
-                c for c in MOCK_CLAIMS
-                if c.driver.name == claim.driver.name
-            ]
+            driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
             result = triage_claim(claim, policy, driver_claims)
             results.append(result)
     return results
@@ -129,4 +120,5 @@ def triage_all_claims():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
