@@ -1,11 +1,37 @@
 """Coverage check logic for motor claims."""
 
+import re
+
 from src.models import (
     Claim,
     CoverageCheckResult,
     CoverageType,
     Policy,
 )
+
+# How a policy's free-text excluded_uses entries map onto the exclusion codes
+# emitted by the description keyword scan. Accepts the common spellings a
+# policy document might carry.
+_USE_CODE_ALIASES = {
+    "rental": "rental_use",
+    "hire": "rental_use",
+    "ride_hailing": "ride_hailing_use",
+    "ridehailing": "ride_hailing_use",
+    "taxi": "taxi_use",
+    "delivery": "delivery_use",
+}
+
+
+def _excluded_use_codes(excluded_uses: list[str]) -> set[str]:
+    """Normalise a policy's excluded_uses into the codes used in results."""
+    codes: set[str] = set()
+    for use in excluded_uses or []:
+        key = re.sub(r"[^a-z]+", "_", str(use).lower()).strip("_")
+        if key in _USE_CODE_ALIASES:
+            codes.add(_USE_CODE_ALIASES[key])
+        elif key.endswith("_use") and key[:-4] in _USE_CODE_ALIASES:
+            codes.add(key)
+    return codes
 
 
 def check_coverage(claim: Claim, policy: Policy) -> CoverageCheckResult:
@@ -44,12 +70,24 @@ def check_coverage(claim: Claim, policy: Policy) -> CoverageCheckResult:
         "taxi": "taxi_use",
         "delivery": "delivery_use",
     }
+    # Which use codes this policy actually excludes.
+    #
+    # The previous test was `keyword in policy.excluded_uses or
+    # policy.excluded_uses`, and the second clause made the first irrelevant:
+    # any policy with a non-empty exclusion list rejected a claim for *any*
+    # use-case word in the description. A policy excluding only "rental" denied
+    # delivery claims, and one excluding "ride_hailing" denied taxi claims.
+    # Denying a covered claim is the worst error this component can make, so
+    # the keyword is now matched against the specific excluded code, and on
+    # word boundaries so "delivery" does not match inside another word.
+    excluded_codes = _excluded_use_codes(policy.excluded_uses)
     desc_lower = claim.accident.description.lower()
     for keyword, exclusion in excluded_use_keywords.items():
-        if keyword in desc_lower and exclusion not in exclusions:
-            if keyword in [u.lower() for u in policy.excluded_uses] or policy.excluded_uses:
-                exclusions.append(exclusion)
-                notes.append(f"Use case '{keyword}' may be excluded under policy terms")
+        if exclusion not in excluded_codes or exclusion in exclusions:
+            continue
+        if re.search(rf"\b{re.escape(keyword)}\b", desc_lower):
+            exclusions.append(exclusion)
+            notes.append(f"Use case '{keyword}' is excluded under policy terms")
 
     # Check claim type coverage based on policy type
     if policy.coverage_type == CoverageType.THIRD_PARTY:

@@ -2,7 +2,12 @@
 
 from datetime import timedelta
 
-from src.models import Claim, RiskLevel, ScoringResult
+from src.models import Claim, Policy, RiskLevel, ScoringResult
+
+# A policy held for less than this is treated as recently purchased.
+NEW_POLICY_DAYS = 30
+# A repair estimate above this is "high" for the new-policy indicator.
+HIGH_CLAIM_AED = 15000
 
 
 def score_complexity(claim: Claim) -> tuple[RiskLevel, list[str]]:
@@ -53,33 +58,42 @@ def score_complexity(claim: Claim) -> tuple[RiskLevel, list[str]]:
 def score_fraud_risk(
     claim: Claim,
     all_claims_for_driver: list[Claim] | None = None,
+    policy: Policy | None = None,
 ) -> tuple[RiskLevel, list[str]]:
-    """Score fraud risk based on indicators."""
+    """Score fraud risk from indicators.
+
+    `policy` is required for the new-policy indicator. Without it the rule is
+    skipped rather than guessed: the indicator is about how long the policy has
+    been held, which cannot be derived from the claim alone.
+    """
     score = 0
     factors: list[str] = []
 
-    # Very new policy + high claim amount
-    policy_age_days = (claim.accident.date.date() - claim.submitted_at.date()).days
-    if policy_age_days < 30:
-        if claim.repair_estimate and claim.repair_estimate.estimated_cost > 15000:
-            score += 3
-            factors.append(
-                f"New policy ({policy_age_days} days old) with high claim "
-                f"AED {claim.repair_estimate.estimated_cost:,.0f}"
-            )
+    # Recently-purchased policy with a large claim. Age is measured from
+    # policy start, not from the gap between accident and submission - that gap
+    # is the reporting lag, which is near zero for every ordinary claim, so
+    # using it flagged any claim above AED 15,000 as "new policy".
+    if policy is not None:
+        policy_age_days = (claim.submitted_at.date() - policy.policy_start_date).days
+        if policy_age_days < NEW_POLICY_DAYS:
+            if claim.repair_estimate and claim.repair_estimate.estimated_cost > HIGH_CLAIM_AED:
+                score += 3
+                factors.append(
+                    f"New policy ({policy_age_days} days old) with high claim "
+                    f"AED {claim.repair_estimate.estimated_cost:,.0f}"
+                )
 
     # Repeated claims for same driver/vehicle in short period
     if all_claims_for_driver:
         recent_claims = [
-            c for c in all_claims_for_driver
+            c
+            for c in all_claims_for_driver
             if c.claim_id != claim.claim_id
             and (claim.accident.date - c.accident.date) <= timedelta(days=90)
         ]
         if len(recent_claims) >= 2:
             score += 3
-            factors.append(
-                f"{len(recent_claims)} previous claims in last 90 days for this driver"
-            )
+            factors.append(f"{len(recent_claims)} previous claims in last 90 days for this driver")
         elif len(recent_claims) == 1:
             score += 1
             factors.append("One previous claim in last 90 days for this driver")
@@ -119,10 +133,11 @@ def score_fraud_risk(
 def score_claim(
     claim: Claim,
     all_claims_for_driver: list[Claim] | None = None,
+    policy: Policy | None = None,
 ) -> ScoringResult:
     """Generate comprehensive scoring for a claim."""
     complexity_level, complexity_factors = score_complexity(claim)
-    fraud_level, fraud_factors = score_fraud_risk(claim, all_claims_for_driver)
+    fraud_level, fraud_factors = score_fraud_risk(claim, all_claims_for_driver, policy)
 
     # Overall risk is the higher of the two
     risk_order = {RiskLevel.LOW: 0, RiskLevel.MEDIUM: 1, RiskLevel.HIGH: 2}
