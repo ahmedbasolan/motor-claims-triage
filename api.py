@@ -1,5 +1,7 @@
 """FastAPI endpoint for motor claims triage."""
 
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,11 +16,20 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Origins are configurable; the default is open because this is a prototype
+# with mock data and no authentication. Two things were wrong with the
+# previous configuration: allow_credentials=True with a wildcard origin is
+# rejected by browsers per the Fetch spec (a credentialed request must name
+# its origins), and the API uses no cookies or auth at all, so credentials
+# had nothing to grant. When this fronts real data, set CORS_ORIGINS to an
+# explicit list and drop the wildcard.
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
