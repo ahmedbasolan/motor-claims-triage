@@ -483,6 +483,34 @@ class TestMockData:
         claims = generate_claims()
         assert len(claims) == len(EXPECTED_RECOMMENDATIONS) == 38
 
+    def test_days_ago_labels_produce_spaced_dates(self):
+        """The date builder used to clamp within one month, so any days_ago
+        >= 14 landed on the same day: six claims labeled 14-30 days apart
+        shared one accident date, fabricating same-day accidents and
+        compressing the repeat-claims window. Claims with different labels
+        must get different dates."""
+        from src.mock_data import generate_claims
+
+        claims = generate_claims()
+        # The six claims that used to collide on 2024-09-01.
+        formerly_clamped = {
+            c.claim_id: c.accident.date.date()
+            for c in claims
+            if c.claim_id in {"CLM-012", "CLM-017", "CLM-019", "CLM-021", "CLM-023", "CLM-024"}
+        }
+        assert len(set(formerly_clamped.values())) == 6, formerly_clamped
+
+        # And globally: same date implies same label. The generator does not
+        # expose the label, so infer it from the build anchor.
+        from datetime import datetime
+
+        by_date: dict[object, set[int]] = {}
+        for c in claims:
+            label = (datetime(2024, 9, 15) - c.accident.date).days
+            by_date.setdefault(c.accident.date.date(), set()).add(label)
+        collisions = {d: labels for d, labels in by_date.items() if len(labels) > 1}
+        assert collisions == {}, collisions
+
     def test_all_claims_have_valid_policies(self):
         from src.mock_data import POLICIES, generate_claims
 

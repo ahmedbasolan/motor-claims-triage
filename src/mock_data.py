@@ -1,6 +1,6 @@
 """Mock data generator for motor claims triage system."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from src.models import (
     AccidentDetails,
@@ -129,8 +129,12 @@ def _build_claim(
     docs: list[dict] | None = None,
 ) -> Claim:
     if accident_date is None:
-        base = datetime(2024, 9, 15)
-        accident_date = base.replace(day=max(1, base.day - days_ago))
+        # Subtract real days. The previous form,
+        # `base.replace(day=max(1, base.day - days_ago))`, clamped inside one
+        # month: any label >= 14 landed on 2024-09-01, so six claims labeled
+        # 14-30 days apart shared a single accident date, fabricating
+        # same-day accidents and compressing the repeat-claims window.
+        accident_date = datetime(2024, 9, 15) - timedelta(days=days_ago)
 
     if docs is None:
         docs = [
