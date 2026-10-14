@@ -66,8 +66,19 @@ def generate_narrative(
             f"**Estimated Repair Cost:** AED {claim.repair_estimate.estimated_cost:,.0f}"
         )
         sections.append(f"**Excess:** AED {coverage.excess_amount:,.0f}")
+        # The payout is capped by the policy's sum insured. This was missing:
+        # a AED 120,000 repair on a AED 100,000 policy was reported as a
+        # "Estimated Net Payout: AED 119,700", a figure the policy could never
+        # pay. The cap is applied, and stated, whenever it binds.
         net = claim.repair_estimate.estimated_cost - coverage.excess_amount
-        sections.append(f"**Estimated Net Payout:** AED {max(net, 0):,.0f}")
+        capped = net > coverage.max_payout
+        payable = min(net, coverage.max_payout) if net > 0 else 0
+        sections.append(f"**Estimated Net Payout:** AED {payable:,.0f}")
+        if capped:
+            sections.append(
+                f"Capped at the policy sum insured (AED {coverage.max_payout:,.0f}); "
+                "the repair estimate exceeds the policy limit."
+            )
     sections.append("")
 
     # Recommendation

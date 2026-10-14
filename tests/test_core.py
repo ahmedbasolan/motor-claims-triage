@@ -367,6 +367,36 @@ class TestTriage:
         assert "Recommendation:" in result.narrative
 
 
+class TestNarrativeFinancials:
+    """The narrative states figures a handler may act on, so the payout must
+    respect the policy limit. It previously ignored max_sum_insured entirely:
+    a AED 120,000 repair on a AED 100,000 policy was reported as a
+    "Estimated Net Payout: AED 119,700", a figure the policy could never pay."""
+
+    def test_payout_is_capped_at_sum_insured(self):
+        claim = _make_claim()
+        claim.repair_estimate.estimated_cost = 120000  # excess 500, sum insured 300000
+        policy = _make_policy(max_sum_insured=100000)
+        result = triage_claim(claim, policy)
+        assert "**Estimated Net Payout:** AED 100,000" in result.narrative
+        assert "Capped at the policy sum insured" in result.narrative
+
+    def test_uncapped_payout_is_repair_minus_excess(self):
+        claim = _make_claim()
+        claim.repair_estimate.estimated_cost = 5000  # excess 500
+        policy = _make_policy(max_sum_insured=300000)
+        result = triage_claim(claim, policy)
+        assert "**Estimated Net Payout:** AED 4,500" in result.narrative
+        assert "Capped at the policy sum insured" not in result.narrative
+
+    def test_payout_never_negative(self):
+        claim = _make_claim()
+        claim.repair_estimate.estimated_cost = 300  # below the 500 excess
+        policy = _make_policy()
+        result = triage_claim(claim, policy)
+        assert "**Estimated Net Payout:** AED 0" in result.narrative
+
+
 class TestMockData:
     def test_generates_labelled_claims(self):
         from src.mock_data import EXPECTED_RECOMMENDATIONS, generate_claims
@@ -467,7 +497,4 @@ class TestGroundTruth:
         results, _ = self._triage_all()
         assert results["CLM-030"].coverage.is_covered is True
         assert results["CLM-030"].coverage.exclusions_triggered == []
-        assert not any(
-            "New policy" in f for f in results["CLM-037"].scoring.fraud_risk_factors
-        )
-
+        assert not any("New policy" in f for f in results["CLM-037"].scoring.fraud_risk_factors)
