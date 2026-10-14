@@ -396,6 +396,31 @@ class TestNarrativeFinancials:
         result = triage_claim(claim, policy)
         assert "**Estimated Net Payout:** AED 0" in result.narrative
 
+    def test_uncovered_claim_states_no_payout(self):
+        # A denied claim must not quote a payout figure - a handler skimming
+        # the narrative would otherwise reserve against a claim the engine
+        # recommends investigating for denial.
+        claim = _make_claim()
+        claim.driver.name = "Excluded Person"
+        policy = _make_policy(excluded_drivers=["Excluded Person"])
+        result = triage_claim(claim, policy)
+        assert result.coverage.is_covered is False
+        assert (
+            "**Estimated Net Payout:** Not estimated - coverage checks did not pass."
+            in result.narrative
+        )
+        assert "AED 4,500" not in result.narrative
+
+    def test_third_party_claim_states_no_payout_from_own_repair(self):
+        # Third-party cover responds to liability to other parties; the
+        # own-vehicle repair estimate is not a basis for a payout figure.
+        claim = _make_claim()
+        policy = _make_policy(coverage_type=CoverageType.THIRD_PARTY)
+        result = triage_claim(claim, policy)
+        assert result.coverage.is_covered is True
+        assert "**Estimated Net Payout:** Not estimated from this figure" in result.narrative
+        assert "liability to other parties" in result.narrative
+
 
 class TestMockData:
     def test_generates_labelled_claims(self):
