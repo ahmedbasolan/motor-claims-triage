@@ -21,7 +21,7 @@ from src.models import (
 )
 from src.recommendation import generate_recommendation
 from src.scoring import score_complexity, score_fraud_risk
-from src.triage import triage_claim
+from src.triage import triage_claim, triage_with_context
 
 
 def _make_claim(**overrides) -> Claim:
@@ -543,9 +543,12 @@ class TestGroundTruth:
         claims = generate_claims()
         results = {}
         for claim in claims:
-            policy = policy_map[claim.policy_number]
-            driver_claims = [c for c in claims if c.driver.name == claim.driver.name]
-            results[claim.claim_id] = triage_claim(claim, policy, driver_claims)
+            # Through the shared wiring, not hand-built context: the labels
+            # must reflect what the API and UI actually run, driver_key
+            # grouping included.
+            result = triage_with_context(claim, policy_map, claims)
+            assert result is not None, f"policy for {claim.claim_id} missing"
+            results[claim.claim_id] = result
         return results, EXPECTED_RECOMMENDATIONS
 
     def test_every_claim_matches_its_label(self):

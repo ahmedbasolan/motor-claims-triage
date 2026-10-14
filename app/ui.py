@@ -24,8 +24,7 @@ from app.theme import (
 )
 from src.mock_data import POLICIES, generate_claims
 from src.models import Recommendation, RiskLevel
-from src.scoring import driver_key
-from src.triage import triage_claim
+from src.triage import triage_with_context
 
 st.set_page_config(
     page_title="Motor Claims Triage",
@@ -64,12 +63,12 @@ selected_id = st.sidebar.selectbox(
 
 # Find selected claim
 selected_claim = next(c for c in ALL_CLAIMS if c.claim_id == selected_id)
-policy = POLICY_MAP[selected_claim.policy_number]
 
-# Run triage
-key = driver_key(selected_claim.driver.name)
-driver_claims = [c for c in ALL_CLAIMS if driver_key(c.driver.name) == key]
-result = triage_claim(selected_claim, policy, driver_claims)
+# Run triage (shared wiring: policy resolution + driver context)
+result = triage_with_context(selected_claim, POLICY_MAP, ALL_CLAIMS)
+if result is None:
+    st.error(f"Policy {selected_claim.policy_number} not found - claim cannot be triaged.")
+    st.stop()
 
 # Page header
 st.markdown(
@@ -163,11 +162,8 @@ st.markdown(section_label("Bulk triage — all claims"), unsafe_allow_html=True)
 
 bulk_results = []
 for claim in ALL_CLAIMS:
-    p = POLICY_MAP.get(claim.policy_number)
-    if p:
-        ck = driver_key(claim.driver.name)
-        dc = [c for c in ALL_CLAIMS if driver_key(c.driver.name) == ck]
-        r = triage_claim(claim, p, dc)
+    r = triage_with_context(claim, POLICY_MAP, ALL_CLAIMS)
+    if r is not None:
         repair = claim.repair_estimate
         repair_str = aed(repair.estimated_cost) if repair else "—"
         bulk_results.append(
