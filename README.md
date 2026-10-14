@@ -4,7 +4,10 @@ A prototype claims triage system for UAE motor insurance that automates coverage
 
 **Status: prototype.** Logic is exercised against 38 synthetic claims and 8 synthetic
 policies. It has never run against real claims, and the scoring thresholds are
-unvalidated guesses, not calibrated against outcome data.
+unvalidated guesses, not calibrated against outcome data. The `eval/` package
+measures that gap (see [Calibration](#calibration)) — it reports what outcomes
+would need to say for the thresholds to be right, and which thresholds the
+current data can even distinguish.
 
 Every claim carries a ground-truth label (`EXPECTED_RECOMMENDATIONS` in
 `src/mock_data.py`), and the dataset is built so that every rule in the engine
@@ -29,7 +32,36 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-54 tests: `pytest tests/ -v`
+72 tests: `pytest tests/ -v`
+
+## Calibration
+
+The engine is internally consistent — every rule verified against labelled
+claims — but internal consistency cannot tell you whether 30 days is the right
+"new policy" threshold. Only outcomes can. `eval/` is the harness that closes
+that gap when outcome data exists:
+
+```bash
+python -m eval.harness    # calibration report + threshold sensitivity
+```
+
+- **Decision agreement** — where the engine's recommendation differs from what
+  a human handler actually did. Volume of difference, not accuracy.
+- **Indicator precision/recall** — for each fraud indicator, the share of
+  flagged claims SIU confirmed (precision) and the share of confirmed fraud it
+  caught (recall).
+- **Threshold sensitivity** — needs no outcome data: sweeps every threshold in
+  `src/scoring.py` and counts how many of the 38 labelled claims change
+  recommendation. On the current dataset `NEW_POLICY_DAYS`, `REPEAT_WINDOW_DAYS`
+  and `FR_HIGH_AT` move nothing at all (the data cannot distinguish them);
+  only `CX_HIGH_AT` (up to 3 claims) and `HIGH_CLAIM_AED` (1 claim) currently
+  change any decision — those are the guesses that matter most today.
+
+`eval/SCHEMA.md` specifies exactly what an insurer partner would need to
+supply — fields already recorded in ordinary claims handling, deidentified,
+joined on claim ID only. `eval/demo_outcomes.json` is **synthetic** and
+labelled as such: it demonstrates the harness, it validates nothing about the
+engine.
 
 ## Defects found by auditing the logic and the stated figures
 
@@ -182,8 +214,15 @@ motor-claims-triage/
 ├── app/
 │   ├── theme.py           # Dossier CSS + stamp/fact-grid/note helpers
 │   └── ui.py              # Streamlit dashboard
+├── eval/
+│   ├── harness.py          # Calibration: agreement, precision/recall, sensitivity
+│   ├── outcomes.py         # Outcome-record schema (what a partner supplies)
+│   ├── SCHEMA.md           # Data contract for closing the calibration gap
+│   └── demo_outcomes.json  # SYNTHETIC demo data (not real outcomes)
 ├── tests/
-│   └── test_core.py       # Unit tests
+│   ├── test_core.py        # Unit + ground-truth tests
+│   ├── test_api_config.py  # API configuration tests
+│   └── test_eval.py        # Calibration harness tests
 ├── api.py                 # FastAPI endpoint
 └── pyproject.toml         # Dependencies
 ```

@@ -1,0 +1,309 @@
+{
+  "comment": "SYNTHETIC demo outcomes for eval/harness.py. Not real data.",
+  "outcomes": [
+    {
+      "claim_id": "CLM-001",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 3000.0,
+      "settled_on": "2024-10-01",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-002",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 700.0,
+      "settled_on": "2024-10-02",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-003",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 4000.0,
+      "settled_on": "2024-10-03",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-004",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 2300.0,
+      "settled_on": "2024-10-04",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-005",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 1300.0,
+      "settled_on": "2024-10-05",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-006",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 11500.0,
+      "settled_on": "2024-10-06",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-007",
+      "handler_decision": "investigate",
+      "fraud_confirmed": true,
+      "amount_paid": null,
+      "settled_on": "2024-10-07",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-008",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 14500.0,
+      "settled_on": "2024-10-08",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-009",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-09",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-010",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-10",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-011",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 44500.0,
+      "settled_on": "2024-10-11",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-012",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 61500.0,
+      "settled_on": "2024-10-12",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-013",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 4500.0,
+      "settled_on": "2024-10-13",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-014",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 7500.0,
+      "settled_on": "2024-10-14",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-015",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 17500.0,
+      "settled_on": "2024-10-15",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-016",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 14500.0,
+      "settled_on": "2024-10-16",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-017",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 27500.0,
+      "settled_on": "2024-10-17",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-018",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 2700.0,
+      "settled_on": "2024-10-18",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-019",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": false,
+      "amount_paid": 37500.0,
+      "settled_on": "2024-10-19",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-020",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-20",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-021",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 1000.0,
+      "settled_on": "2024-10-21",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-022",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": false,
+      "amount_paid": 9000.0,
+      "settled_on": "2024-10-22",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-023",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-23",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-024",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 7000.0,
+      "settled_on": "2024-10-24",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-025",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 24500.0,
+      "settled_on": "2024-10-25",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-026",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-26",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-027",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": false,
+      "amount_paid": 2900.0,
+      "settled_on": "2024-10-27",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-028",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": false,
+      "amount_paid": 2200.0,
+      "settled_on": "2024-10-28",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-029",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-29",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-030",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 3700.0,
+      "settled_on": "2024-10-30",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-031",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-10-31",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-032",
+      "handler_decision": "investigate",
+      "fraud_confirmed": false,
+      "amount_paid": null,
+      "settled_on": "2024-11-01",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-033",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 3300.0,
+      "settled_on": "2024-11-02",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-034",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 6000.0,
+      "settled_on": "2024-11-03",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-035",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 21500.0,
+      "settled_on": "2024-11-04",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-036",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 11500.0,
+      "settled_on": "2024-11-05",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-037",
+      "handler_decision": "fast_track",
+      "fraud_confirmed": null,
+      "amount_paid": 4000.0,
+      "settled_on": "2024-11-06",
+      "notes": "Synthetic demo outcome - not real data."
+    },
+    {
+      "claim_id": "CLM-038",
+      "handler_decision": "standard_review",
+      "fraud_confirmed": null,
+      "amount_paid": 54500.0,
+      "settled_on": "2024-11-07",
+      "notes": "Synthetic demo outcome - not real data."
+    }
+  ]
+}
