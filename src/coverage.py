@@ -34,6 +34,20 @@ def _excluded_use_codes(excluded_uses: list[str]) -> set[str]:
     return codes
 
 
+def _norm_name(value: str) -> str:
+    """Normalise a person name for comparison: case and internal whitespace
+    only. 'john smith' and 'John  Smith' are the same driver; punctuation is
+    left alone so distinct names stay distinct."""
+    return " ".join(str(value).split()).casefold()
+
+
+def _norm_reg(value: str) -> str:
+    """Normalise a registration plate for comparison: case-insensitive and
+    ignoring separators, so 'a-12345', 'A 12345' and 'A12345' compare equal.
+    Plates arrive from different systems with different spacing."""
+    return re.sub(r"[^a-z0-9]", "", str(value).lower())
+
+
 def check_coverage(claim: Claim, policy: Policy) -> CoverageCheckResult:
     """Check if a claim is covered under the given policy."""
     exclusions: list[str] = []
@@ -48,13 +62,18 @@ def check_coverage(claim: Claim, policy: Policy) -> CoverageCheckResult:
             f"({policy.policy_start_date} to {policy.policy_end_date})"
         )
 
-    # Check if driver is excluded
-    if claim.driver.name in policy.excluded_drivers:
+    # Check if driver is excluded. Compared case- and whitespace-insensitively:
+    # an exact-string miss let an excluded driver's claim pass, and that is a
+    # missed exclusion, the fraud-side error this check exists to prevent.
+    claim_driver = _norm_name(claim.driver.name)
+    if any(claim_driver == _norm_name(d) for d in policy.excluded_drivers):
         exclusions.append("excluded_driver")
         notes.append(f"Driver '{claim.driver.name}' is listed as excluded on policy")
 
-    # Check vehicle matches policy
-    if claim.vehicle.registration_number != policy.vehicle_registration:
+    # Check vehicle matches policy. Plates are compared ignoring case and
+    # separators: an exact-string mismatch on 'a-12345' vs 'A-12345' denied a
+    # covered claim over formatting, the worst error this component can make.
+    if _norm_reg(claim.vehicle.registration_number) != _norm_reg(policy.vehicle_registration):
         exclusions.append("vehicle_mismatch")
         notes.append(
             f"Claim vehicle {claim.vehicle.registration_number} does not match "

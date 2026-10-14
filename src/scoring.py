@@ -10,6 +10,13 @@ NEW_POLICY_DAYS = 30
 HIGH_CLAIM_AED = 15000
 
 
+def driver_key(name: str) -> str:
+    """Normalise a driver name for grouping claims: case- and
+    whitespace-insensitive. The repeat-claims window must not miss a prior
+    claim because the same driver was typed differently in two systems."""
+    return " ".join(str(name).split()).casefold()
+
+
 def score_complexity(claim: Claim) -> tuple[RiskLevel, list[str]]:
     """Score claim complexity based on multiple factors."""
     score = 0
