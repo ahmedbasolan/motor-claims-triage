@@ -32,7 +32,10 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-85 tests: `pytest tests/ -v`. Run automatically on every push and PR by
+91 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
+API endpoints (all 38 labels round-tripped over HTTP), and the dashboard
+(each claim selected in the sidebar, stamp checked against its label).
+Run automatically on every push and PR by
 GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest,
 on Python 3.10 (the `requires-python` floor) and 3.13.
 
@@ -155,6 +158,13 @@ at 76.1.0. The floor is now `>=77.0`. Found the same way as the scoring
 defects — a stated figure (the floor) checked against the data (what the
 file's own syntax requires) rather than against the code that was read.
 
+**README: the stated test count lagged the suite.** After the endpoint
+tests landed, the header still claimed 72 while `pytest` reported 85 — a
+stated figure never re-checked against a run after the suite grew. Trivial
+in isolation, but the README asserts its figures are audited, so a stale
+one undercuts the claim it makes. The count now states what each suite
+covers, updated in the same commit as any test addition.
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
@@ -234,7 +244,8 @@ motor-claims-triage/
 │   ├── test_core.py            # Unit + ground-truth tests
 │   ├── test_api_config.py      # API configuration tests
 │   ├── test_api_integration.py # Endpoint tests (all 38 labels round-tripped)
-│   └── test_eval.py            # Calibration harness tests
+│   ├── test_eval.py            # Calibration harness tests
+│   └── test_ui.py              # Dashboard tests (all 38 stamps round-tripped)
 ├── .github/workflows/ci.yml    # CI: ruff + pytest on push/PR
 ├── LICENSE                     # MIT
 ├── api.py                      # FastAPI endpoint
