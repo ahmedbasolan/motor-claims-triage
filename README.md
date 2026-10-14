@@ -146,6 +146,15 @@ crashed at the bulk table), and the API's CORS no longer pairs a wildcard
 origin with credentials, which browsers reject; origins are configurable via
 `CORS_ORIGINS`.
 
+**Build: the declared setuptools floor rejected this file's own syntax.**
+`build-system.requires` pinned `setuptools>=68.0` while the `license = "MIT"`
+SPDX string (PEP 639) needs setuptools 77+, so a fresh install at the floor
+*the project itself declared* failed while preparing metadata. Verified in
+both directions: builds and emits `License-Expression: MIT` at 77.0.1, fails
+at 76.1.0. The floor is now `>=77.0`. Found the same way as the scoring
+defects — a stated figure (the floor) checked against the data (what the
+file's own syntax requires) rather than against the code that was read.
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
