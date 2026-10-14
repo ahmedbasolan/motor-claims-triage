@@ -124,25 +124,30 @@ def _build_claim(
     injury: bool = False,
     dispute: bool = False,
     extra_docs: list[dict] | None = None,
+    accident_date: datetime | None = None,
+    registration: str | None = None,
+    docs: list[dict] | None = None,
 ) -> Claim:
-    base = datetime(2024, 9, 15)
-    accident_date = base.replace(day=max(1, base.day - days_ago))
+    if accident_date is None:
+        base = datetime(2024, 9, 15)
+        accident_date = base.replace(day=max(1, base.day - days_ago))
 
-    docs = [
-        DocumentMetadata(
-            doc_type="police_report",
-            description=f"Police report filed at {location}",
-            uploaded_at=accident_date,
-        ),
-        DocumentMetadata(
-            doc_type="photo",
-            description=f"Photos of vehicle damage at {location}",
-            uploaded_at=accident_date,
-        ),
-    ]
-    if extra_docs:
-        for d in extra_docs:
-            docs.append(DocumentMetadata(**d))
+    if docs is None:
+        docs = [
+            {
+                "doc_type": "police_report",
+                "description": f"Police report filed at {location}",
+                "uploaded_at": accident_date,
+            },
+            {
+                "doc_type": "photo",
+                "description": f"Photos of vehicle damage at {location}",
+                "uploaded_at": accident_date,
+            },
+        ]
+        if extra_docs:
+            docs.extend(extra_docs)
+    doc_models = [DocumentMetadata(**d) for d in docs]
 
     return Claim(
         claim_id=claim_id,
@@ -151,7 +156,7 @@ def _build_claim(
             make=vehicle_make,
             model=vehicle_model,
             year=vehicle_year,
-            registration_number=policy.vehicle_registration,
+            registration_number=registration if registration is not None else policy.vehicle_registration,
             estimated_value=vehicle_value,
         ),
         driver=DriverDetails(
@@ -168,7 +173,7 @@ def _build_claim(
             injury_reported=injury,
             liability_disputed=dispute,
         ),
-        documents=docs,
+        documents=doc_models,
         repair_estimate=RepairEstimate(
             estimated_cost=repair_cost,
             garage_name=garage,
@@ -610,4 +615,290 @@ def generate_claims() -> list[Claim]:
             repair_cost=25000,
             garage="Gargash Auto",
         ),
+        # --- RULE-COVERAGE CLAIMS -------------------------------------------------
+        # Each claim below isolates one rule that the original 25 claims never
+        # exercised, so the dataset as a whole verifies every branch of the
+        # engine. Fresh driver names keep the repeat-claims indicator out of
+        # these cases (and out of the original claims' scores).
+        # CLM-026: use-case exclusion FIRES (rental on a rental-excluding policy)
+        _build_claim(
+            "CLM-026",
+            POLICIES[0],
+            "Samir Haddad",
+            36,
+            11,
+            "Hyundai",
+            "Tucson",
+            2022,
+            110000,
+            days_ago=4,
+            location="Jebel Ali Free Zone, Dubai",
+            description="Collision while the car was out on a rental contract.",
+            repair_cost=5600,
+            garage="Al Futtaim Auto",
+        ),
+        # CLM-027: platform alias (Uber) resolving to ride_hailing_use
+        _build_claim(
+            "CLM-027",
+            POLICIES[1],
+            "Aisha Rahman",
+            31,
+            7,
+            "Kia",
+            "Pegas",
+            2021,
+            48000,
+            days_ago=5,
+            location="Downtown Dubai",
+            description="Rear-ended while finishing an Uber trip in Downtown Dubai.",
+            repair_cost=3400,
+            garage="Gargash Auto",
+        ),
+        # CLM-028: taxi use-case exclusion
+        _build_claim(
+            "CLM-028",
+            POLICIES[3],
+            "Bilal Khan",
+            44,
+            18,
+            "Nissan",
+            "Sunny",
+            2020,
+            42000,
+            days_ago=6,
+            location="Al Souq, Sharjah",
+            description="Minor collision while working a taxi shift near the souq.",
+            repair_cost=2700,
+            garage="Sharjah Auto Care",
+        ),
+        # CLM-029: delivery use-case exclusion
+        _build_claim(
+            "CLM-029",
+            POLICIES[4],
+            "Rami Khalil",
+            27,
+            3,
+            "Renault",
+            "Duster",
+            2021,
+            63000,
+            days_ago=3,
+            location="Al Nahda, Sharjah",
+            description="Rear-ended while on a delivery run for the restaurant.",
+            repair_cost=4100,
+            garage="Sharjah Body Shop",
+        ),
+        # CLM-030: NEGATIVE control for the coverage defect — a delivery claim on
+        # a policy that excludes rental and ride-hailing only must stay covered.
+        _build_claim(
+            "CLM-030",
+            POLICIES[0],
+            "Nadia Haddad",
+            33,
+            9,
+            "Toyota",
+            "Corolla",
+            2021,
+            78000,
+            days_ago=7,
+            location="Jumeirah, Dubai",
+            description="Stopped to make a delivery when rear-ended at a junction.",
+            repair_cost=4200,
+            garage="Al Futtaim Auto",
+        ),
+        # CLM-031: policy_not_active — accident predates policy inception
+        _build_claim(
+            "CLM-031",
+            POLICIES[4],
+            "Tarek Ziad",
+            40,
+            14,
+            "Mitsubishi",
+            "Pajero",
+            2019,
+            58000,
+            days_ago=2,
+            accident_date=datetime(2024, 5, 15),
+            location="Ras Al Khaimah Corniche",
+            description="Minor bumper damage in a parking lot.",
+            repair_cost=3000,
+            garage="RAK Auto Workshop",
+        ),
+        # CLM-032: vehicle_mismatch — registration differs from the policy
+        _build_claim(
+            "CLM-032",
+            POLICIES[5],
+            "Jorge Mendes",
+            37,
+            12,
+            "Audi",
+            "A4",
+            2021,
+            130000,
+            days_ago=5,
+            registration="Z-99999",
+            location="Business Bay, Dubai",
+            description="Scratched the bumper in a basement car park.",
+            repair_cost=2500,
+            garage="Gargash Auto",
+        ),
+        # CLM-033: third-party advisory note (own-vehicle damage wording)
+        _build_claim(
+            "CLM-033",
+            POLICIES[1],
+            "Fatima Nasser",
+            48,
+            22,
+            "Toyota",
+            "Land Cruiser",
+            2020,
+            210000,
+            days_ago=4,
+            location="Corniche, Abu Dhabi",
+            description="Rear-ended at traffic light. Damage to my car and the other vehicle.",
+            repair_cost=3800,
+            garage="Abu Dhabi Motors",
+        ),
+        # CLM-034: story inconsistency keyword family (location)
+        _build_claim(
+            "CLM-034",
+            POLICIES[2],
+            "Hana Faris",
+            29,
+            5,
+            "Honda",
+            "Accord",
+            2021,
+            105000,
+            days_ago=8,
+            location="Al Khalidiyah, Abu Dhabi",
+            description=(
+                "Minor collision at a junction; witness says the driver "
+                "changed story about the light."
+            ),
+            repair_cost=6500,
+            garage="Abu Dhabi Motors",
+        ),
+        # CLM-035: new-policy fraud indicator (10-day-old policy, high claim)
+        _build_claim(
+            "CLM-035",
+            POLICIES[7],
+            "Deniz Yilmaz",
+            35,
+            10,
+            "Ford",
+            "Explorer",
+            2022,
+            200000,
+            days_ago=2,
+            accident_date=datetime(2024, 8, 10),
+            location="Al Rigga, Dubai",
+            description="Collision at a roundabout with significant damage.",
+            repair_cost=22000,
+            garage="Galadari Automobiles",
+        ),
+        # CLM-036: thin documentation — zero documents against a repair estimate
+        _build_claim(
+            "CLM-036",
+            POLICIES[3],
+            "Mona Saleh",
+            42,
+            16,
+            "Lexus",
+            "ES",
+            2021,
+            150000,
+            days_ago=6,
+            location="Hamdan Street, Abu Dhabi",
+            description="Dent on the rear door in a parking garage.",
+            repair_cost=12000,
+            garage="Gargash Auto",
+            docs=[],
+        ),
+        # CLM-037: NEGATIVE control for the new-policy rule — new policy but a
+        # low-value claim, so the indicator must not fire.
+        _build_claim(
+            "CLM-037",
+            POLICIES[7],
+            "Imran Saeed",
+            26,
+            2,
+            "Suzuki",
+            "Celerio",
+            2022,
+            90000,
+            days_ago=3,
+            accident_date=datetime(2024, 8, 5),
+            location="Deira, Dubai",
+            description="Minor scratch while parking. No other vehicles.",
+            repair_cost=4500,
+            garage="Al Futtaim Auto",
+        ),
+        # CLM-038: total-loss tier — repair cost above 70% of vehicle value
+        _build_claim(
+            "CLM-038",
+            POLICIES[6],
+            "Victor Osei",
+            39,
+            13,
+            "Toyota",
+            "Hilux",
+            2019,
+            72000,
+            days_ago=9,
+            location="E311 Highway, Dubai",
+            description="Front-end collision with a median barrier at speed.",
+            repair_cost=55000,
+            garage="Galadari Automobiles",
+        ),
     ]
+
+
+# Ground truth: the recommendation each claim must receive. This is the
+# dataset's independent label — tests assert the engine reproduces it, so a
+# silent behaviour change fails the suite instead of shipping. For the claims
+# that exercise a rule, the label follows from the rule's documented effect:
+# an exclusion or coverage failure escalates to investigate, a single medium
+# risk indicator routes to standard review, and a clean low-risk claim
+# fast-tracks. The labels for CLM-001..025 reflect the post-fix engine, whose
+# investigate set was verified reason by reason.
+EXPECTED_RECOMMENDATIONS: dict[str, object] = {
+    "CLM-001": "standard_review",
+    "CLM-002": "standard_review",
+    "CLM-003": "fast_track",
+    "CLM-004": "standard_review",
+    "CLM-005": "fast_track",
+    "CLM-006": "standard_review",
+    "CLM-007": "investigate",
+    "CLM-008": "fast_track",
+    "CLM-009": "standard_review",
+    "CLM-010": "investigate",
+    "CLM-011": "fast_track",
+    "CLM-012": "standard_review",
+    "CLM-013": "fast_track",
+    "CLM-014": "standard_review",
+    "CLM-015": "fast_track",
+    "CLM-016": "fast_track",
+    "CLM-017": "fast_track",
+    "CLM-018": "fast_track",
+    "CLM-019": "investigate",
+    "CLM-020": "investigate",
+    "CLM-021": "fast_track",
+    "CLM-022": "investigate",
+    "CLM-023": "investigate",
+    "CLM-024": "standard_review",
+    "CLM-025": "standard_review",
+    "CLM-026": "investigate",  # rental exclusion fires
+    "CLM-027": "investigate",  # Uber alias -> ride_hailing_use
+    "CLM-028": "investigate",  # taxi exclusion fires
+    "CLM-029": "investigate",  # delivery exclusion fires
+    "CLM-030": "fast_track",  # delivery word on a rental-only policy: covered
+    "CLM-031": "investigate",  # policy_not_active
+    "CLM-032": "investigate",  # vehicle_mismatch
+    "CLM-033": "fast_track",  # third-party advisory is a note, not a denial
+    "CLM-034": "standard_review",  # inconsistency keyword -> fraud medium
+    "CLM-035": "standard_review",  # new policy + high claim -> fraud medium
+    "CLM-036": "fast_track",  # thin docs adds 1, below the medium threshold
+    "CLM-037": "fast_track",  # new policy + low claim: indicator must not fire
+    "CLM-038": "standard_review",  # total-loss tier (+3) -> medium, not high
+}
