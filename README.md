@@ -32,7 +32,9 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-72 tests: `pytest tests/ -v`
+85 tests: `pytest tests/ -v`. Run automatically on every push and PR by
+GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest,
+on Python 3.10 (the `requires-python` floor) and 3.13.
 
 ## Calibration
 
@@ -220,11 +222,14 @@ motor-claims-triage/
 │   ├── SCHEMA.md           # Data contract for closing the calibration gap
 │   └── demo_outcomes.json  # SYNTHETIC demo data (not real outcomes)
 ├── tests/
-│   ├── test_core.py        # Unit + ground-truth tests
-│   ├── test_api_config.py  # API configuration tests
-│   └── test_eval.py        # Calibration harness tests
-├── api.py                 # FastAPI endpoint
-└── pyproject.toml         # Dependencies
+│   ├── test_core.py            # Unit + ground-truth tests
+│   ├── test_api_config.py      # API configuration tests
+│   ├── test_api_integration.py # Endpoint tests (all 38 labels round-tripped)
+│   └── test_eval.py            # Calibration harness tests
+├── .github/workflows/ci.yml    # CI: ruff + pytest on push/PR
+├── LICENSE                     # MIT
+├── api.py                      # FastAPI endpoint
+└── pyproject.toml              # Dependencies
 ```
 
 ## UAE Insurance Context
