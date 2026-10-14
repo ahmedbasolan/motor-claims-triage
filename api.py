@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.mock_data import POLICIES, generate_claims
 from src.models import Claim, TriageResult
+from src.scoring import driver_key
 from src.triage import triage_claim
 
 app = FastAPI(
@@ -77,8 +78,9 @@ def triage_single_claim(claim: Claim):
             detail=f"Policy {claim.policy_number} not found",
         )
 
-    # Find other claims for same driver to check repeated claims
-    driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
+    # Find other claims for same driver to check repeated claims.
+    key = driver_key(claim.driver.name)
+    driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
 
     return triage_claim(claim, policy, driver_claims)
 
@@ -101,7 +103,8 @@ def triage_existing_claim(claim_id: str):
             detail=f"Policy {claim.policy_number} not found",
         )
 
-    driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
+    key = driver_key(claim.driver.name)
+    driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
 
     return triage_claim(claim, policy, driver_claims)
 
@@ -112,7 +115,8 @@ def triage_all_claims():
     for claim in MOCK_CLAIMS:
         policy = POLICY_MAP.get(claim.policy_number)
         if policy:
-            driver_claims = [c for c in MOCK_CLAIMS if c.driver.name == claim.driver.name]
+            key = driver_key(claim.driver.name)
+            driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
             result = triage_claim(claim, policy, driver_claims)
             results.append(result)
     return results

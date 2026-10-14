@@ -24,6 +24,7 @@ from app.theme import (
 )
 from src.mock_data import POLICIES, generate_claims
 from src.models import Recommendation, RiskLevel
+from src.scoring import driver_key
 from src.triage import triage_claim
 
 st.set_page_config(
@@ -66,7 +67,8 @@ selected_claim = next(c for c in ALL_CLAIMS if c.claim_id == selected_id)
 policy = POLICY_MAP[selected_claim.policy_number]
 
 # Run triage
-driver_claims = [c for c in ALL_CLAIMS if c.driver.name == selected_claim.driver.name]
+key = driver_key(selected_claim.driver.name)
+driver_claims = [c for c in ALL_CLAIMS if driver_key(c.driver.name) == key]
 result = triage_claim(selected_claim, policy, driver_claims)
 
 # Page header
@@ -163,7 +165,8 @@ bulk_results = []
 for claim in ALL_CLAIMS:
     p = POLICY_MAP.get(claim.policy_number)
     if p:
-        dc = [c for c in ALL_CLAIMS if c.driver.name == claim.driver.name]
+        ck = driver_key(claim.driver.name)
+        dc = [c for c in ALL_CLAIMS if driver_key(c.driver.name) == ck]
         r = triage_claim(claim, p, dc)
         repair = claim.repair_estimate
         repair_str = aed(repair.estimated_cost) if repair else "—"

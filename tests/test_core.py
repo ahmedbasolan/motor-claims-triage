@@ -86,6 +86,23 @@ class TestCoverage:
         assert result.is_covered is False
         assert "excluded_driver" in result.exclusions_triggered
 
+    def test_excluded_driver_match_ignores_case_and_whitespace(self):
+        """An exact-string miss lets an excluded driver's claim pass - a
+        missed exclusion, the error this check exists to prevent."""
+        for spelling in ["excluded person", "EXCLUDED  PERSON", "Excluded Person"]:
+            claim = _make_claim()
+            claim.driver.name = spelling
+            policy = _make_policy(excluded_drivers=["Excluded Person"])
+            result = check_coverage(claim, policy)
+            assert "excluded_driver" in result.exclusions_triggered, spelling
+
+    def test_distinct_names_still_differ(self):
+        claim = _make_claim()
+        claim.driver.name = "Excluded Persons"
+        policy = _make_policy(excluded_drivers=["Excluded Person"])
+        result = check_coverage(claim, policy)
+        assert "excluded_driver" not in result.exclusions_triggered
+
     def test_vehicle_mismatch(self):
         claim = _make_claim()
         claim.vehicle.registration_number = "B-99999"
@@ -93,6 +110,32 @@ class TestCoverage:
         result = check_coverage(claim, policy)
         assert result.is_covered is False
         assert "vehicle_mismatch" in result.exclusions_triggered
+
+    def test_registration_match_ignores_case_and_separators(self):
+        """Plates arrive from different systems with different spacing;
+        denying a covered claim over 'a-12345' vs 'A-12345' is the worst
+        error this component can make."""
+        for plate in ["a-12345", "A 12345", "A12345", "a12345"]:
+            claim = _make_claim()
+            claim.vehicle.registration_number = plate
+            policy = _make_policy()
+            result = check_coverage(claim, policy)
+            assert "vehicle_mismatch" not in result.exclusions_triggered, plate
+
+    def test_different_registrations_still_mismatch(self):
+        claim = _make_claim()
+        claim.vehicle.registration_number = "A-12346"
+        policy = _make_policy()
+        result = check_coverage(claim, policy)
+        assert "vehicle_mismatch" in result.exclusions_triggered
+
+    def test_driver_key_normalises_for_claim_grouping(self):
+        """The repeat-claims window groups claims by driver; grouping must not
+        miss prior claims because a name was typed differently."""
+        from src.scoring import driver_key
+
+        assert driver_key("John  Smith") == driver_key("JOHN SMITH")
+        assert driver_key("John Smith") != driver_key("John Smith Jr")
 
     def test_policy_expired(self):
         claim = _make_claim()
