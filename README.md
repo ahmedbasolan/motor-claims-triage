@@ -1,6 +1,6 @@
 # Motor Claims Triage & Decision-Support Copilot
 
-A prototype claims triage system for UAE motor insurance that automates coverage checks, risk scoring, and decision recommendations.
+A prototype claims triage system for UAE motor insurance that automates coverage checks, risk scoring, and decision recommendations. [MIT](LICENSE) licensed.
 
 **Status: prototype.** Logic is exercised against 38 synthetic claims and 8 synthetic
 policies. It has never run against real claims, and the scoring thresholds are
