@@ -2,6 +2,7 @@
 name = "motor-claims-triage"
 version = "0.1.0"
 description = "Motor Claims Triage & Decision-Support Copilot"
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.0",
@@ -21,7 +22,10 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=68.0"]
+# PEP 639 (license = "MIT" as an SPDX expression, emitted as
+# License-Expression) needs setuptools 77+; the previous floor (68) would
+# reject the pyproject.toml it is declared next to.
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
