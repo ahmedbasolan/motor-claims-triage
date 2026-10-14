@@ -240,6 +240,17 @@ class TestScoring:
         level, factors = score_fraud_risk(claim, policy=policy)
         assert not any("New policy" in f for f in factors), factors
 
+    def test_claim_predating_inception_is_not_called_a_new_policy(self):
+        """A claim submitted before the policy started yields a negative age,
+        which passed `< 30` and was narrated as "New policy (-42 days old)".
+        Pre-inception is a coverage failure, not a fraud factor."""
+        claim = _make_claim(submitted_at=datetime(2024, 8, 10))
+        claim.repair_estimate.estimated_cost = 45000
+        policy = _make_policy(policy_start_date=date(2024, 9, 23))  # age -44 days
+        level, factors = score_fraud_risk(claim, policy=policy)
+        assert not any("New policy" in f for f in factors), factors
+        assert not any("days old" in f for f in factors), factors
+
     def test_repeated_claims(self):
         claim = _make_claim()
         other_claim = _make_claim()

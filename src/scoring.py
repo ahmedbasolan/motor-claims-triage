@@ -73,9 +73,15 @@ def score_fraud_risk(
     # policy start, not from the gap between accident and submission - that gap
     # is the reporting lag, which is near zero for every ordinary claim, so
     # using it flagged any claim above AED 15,000 as "new policy".
+    #
+    # The window is bounded on both sides, like the repeat-claims window: a
+    # claim predating inception yields a negative age, which passed `< 30` and
+    # was reported as "New policy (-42 days old)". A claim before inception is
+    # a coverage failure (policy_not_active), not a new-policy indicator, so
+    # negative ages are skipped rather than narrated as a fraud factor.
     if policy is not None:
         policy_age_days = (claim.submitted_at.date() - policy.policy_start_date).days
-        if policy_age_days < NEW_POLICY_DAYS:
+        if 0 <= policy_age_days < NEW_POLICY_DAYS:
             if claim.repair_estimate and claim.repair_estimate.estimated_cost > HIGH_CLAIM_AED:
                 score += 3
                 factors.append(
