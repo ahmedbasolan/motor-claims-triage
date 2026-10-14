@@ -83,13 +83,21 @@ def score_fraud_risk(
                     f"AED {claim.repair_estimate.estimated_cost:,.0f}"
                 )
 
-    # Repeated claims for same driver/vehicle in short period
+    # Repeated claims for same driver/vehicle in short period.
+    #
+    # The window is bounded on both sides. The previous test was only
+    # `(claim.accident.date - c.accident.date) <= timedelta(days=90)`, and a
+    # claim from the *future* yields a negative delta, which passes: "3
+    # previous claims in last 90 days" could be three claims that had not
+    # happened yet. Only claims dated at or before the current accident, and
+    # within 90 days of it, are previous claims.
     if all_claims_for_driver:
+        window = timedelta(days=90)
         recent_claims = [
             c
             for c in all_claims_for_driver
             if c.claim_id != claim.claim_id
-            and (claim.accident.date - c.accident.date) <= timedelta(days=90)
+            and timedelta(0) <= (claim.accident.date - c.accident.date) <= window
         ]
         if len(recent_claims) >= 2:
             score += 3

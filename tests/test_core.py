@@ -249,6 +249,35 @@ class TestScoring:
         assert level in [RiskLevel.MEDIUM, RiskLevel.HIGH]
         assert any("previous claim" in f for f in factors)
 
+    def test_future_claims_are_not_previous_claims(self):
+        # A claim dated after the current accident is not a previous claim.
+        # The window used to be one-sided (`delta <= 90 days`), so a future
+        # claim produced a negative delta and was counted as "previous".
+        claim = _make_claim()  # accident 2024-09-10
+        future = _make_claim()
+        future.claim_id = "TEST-002"
+        future.accident.date = datetime(2024, 9, 20)  # 10 days after
+        level, factors = score_fraud_risk(claim, all_claims_for_driver=[claim, future])
+        assert level == RiskLevel.LOW
+        assert not any("previous claim" in f for f in factors)
+
+    def test_claims_older_than_90_days_are_not_counted(self):
+        claim = _make_claim()  # accident 2024-09-10
+        old = _make_claim()
+        old.claim_id = "TEST-002"
+        old.accident.date = datetime(2024, 6, 1)  # 101 days before
+        level, factors = score_fraud_risk(claim, all_claims_for_driver=[claim, old])
+        assert level == RiskLevel.LOW
+        assert not any("previous claim" in f for f in factors)
+
+    def test_boundary_claims_at_90_days_are_counted(self):
+        claim = _make_claim()  # accident 2024-09-10
+        exactly = _make_claim()
+        exactly.claim_id = "TEST-002"
+        exactly.accident.date = datetime(2024, 6, 12)  # exactly 90 days before
+        level, factors = score_fraud_risk(claim, all_claims_for_driver=[claim, exactly])
+        assert any("previous claim" in f for f in factors)
+
     def test_combined_fraud_indicators_reach_high(self):
         claim = _make_claim(submitted_at=datetime(2024, 9, 10))
         claim.repair_estimate.estimated_cost = 50000
