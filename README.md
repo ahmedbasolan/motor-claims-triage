@@ -29,12 +29,12 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-42 tests: `pytest tests/ -v`
+54 tests: `pytest tests/ -v`
 
 ## Defects found by auditing the logic and the stated figures
 
-All four were found by checking the rules and stated figures against the data
-rather than by reading the code, and all four produced confidently wrong output.
+All were found by checking the rules and stated figures against the data rather
+than by reading the code, and each produced confidently wrong output.
 
 **Fraud: "new policy" was measured as reporting lag.** The indicator computed
 `accident.date - submitted_at` and named the result `policy_age_days`. That gap
@@ -76,6 +76,41 @@ The payout is now capped at the sum insured, and the cap is stated whenever it
 binds. This was found by auditing the narrative's stated figures against the
 policy data — the same failure mode as the scoring defects: a confidently
 asserted fact that the data contradicts.
+
+**Narrative: denied and third-party claims were quoted a payout.** Every
+uncovered claim still printed an *Estimated Net Payout* — an excluded-driver
+claim read *"AED 2,000"* — so a handler skimming would reserve against a claim
+the engine recommends investigating for denial. Third-party policies, which do
+not cover own-vehicle repair, were quoted a payout from the own-vehicle
+estimate too. The figure is now withheld when coverage failed, and stated in
+liability terms for third-party cover.
+
+**Fraud: claims predating inception were narrated as "new policies."** The
+recently-purchased-policy rule tested only `age < 30`, so a negative age — a
+claim submitted before the policy started — passed, and the narrative stated
+*"New policy (-42 days old)"*. Pre-inception is a coverage failure, not a fraud
+factor; the window is now `0 ≤ age < 30`, matching the bounded-window
+discipline the repeat-claims fix established.
+
+**Coverage: driver and registration checks were exact-string matches.**
+`"john smith"` did not match an exclusion list naming `"John Smith"`, so an
+excluded driver's claim passed; `"a-12345"` against policy `"A-12345"` raised
+`vehicle_mismatch` and denied a covered claim over formatting. Both sides now
+compare case- and separator-insensitively, and the repeat-claims window groups
+drivers the same way (shared `driver_key`), so prior claims are not missed
+where a name was typed differently between systems.
+
+**Mock data: accident dates were clamped, fabricating same-day accidents.**
+The date builder subtracted days within a single month, so any `days_ago ≥ 14`
+landed on the same day — six claims labeled 14–30 days apart shared one
+accident date, compressing the repeat-claims window the dataset exists to
+exercise. Dates are now real subtractions.
+
+Also fixed in the same pass: the `streamlit` floor was raised to 1.49.0 to
+match the `width="stretch"` API the UI uses (a fresh install on the old floor
+crashed at the bulk table), and the API's CORS no longer pairs a wildcard
+origin with credentials, which browsers reject; origins are configurable via
+`CORS_ORIGINS`.
 
 ## Design system — "Dossier"
 
