@@ -7,8 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.mock_data import POLICIES, generate_claims
 from src.models import Claim, TriageResult
-from src.scoring import driver_key
-from src.triage import triage_claim
+from src.triage import triage_with_context
 
 app = FastAPI(
     title="Motor Claims Triage API",
@@ -82,18 +81,13 @@ def list_policies():
 
 @app.post("/triage_claim", response_model=TriageResult)
 def triage_single_claim(claim: Claim):
-    policy = POLICY_MAP.get(claim.policy_number)
-    if not policy:
+    result = triage_with_context(claim, POLICY_MAP, MOCK_CLAIMS)
+    if result is None:
         raise HTTPException(
             status_code=400,
             detail=f"Policy {claim.policy_number} not found",
         )
-
-    # Find other claims for same driver to check repeated claims.
-    key = driver_key(claim.driver.name)
-    driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
-
-    return triage_claim(claim, policy, driver_claims)
+    return result
 
 
 @app.post("/triage_claim/{claim_id}", response_model=TriageResult)
@@ -107,28 +101,21 @@ def triage_existing_claim(claim_id: str):
     if not claim:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
 
-    policy = POLICY_MAP.get(claim.policy_number)
-    if not policy:
+    result = triage_with_context(claim, POLICY_MAP, MOCK_CLAIMS)
+    if result is None:
         raise HTTPException(
             status_code=400,
             detail=f"Policy {claim.policy_number} not found",
         )
-
-    key = driver_key(claim.driver.name)
-    driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
-
-    return triage_claim(claim, policy, driver_claims)
+    return result
 
 
 @app.get("/triage_all")
 def triage_all_claims():
     results = []
     for claim in MOCK_CLAIMS:
-        policy = POLICY_MAP.get(claim.policy_number)
-        if policy:
-            key = driver_key(claim.driver.name)
-            driver_claims = [c for c in MOCK_CLAIMS if driver_key(c.driver.name) == key]
-            result = triage_claim(claim, policy, driver_claims)
+        result = triage_with_context(claim, POLICY_MAP, MOCK_CLAIMS)
+        if result is not None:
             results.append(result)
     return results
 

@@ -23,8 +23,7 @@ from eval.outcomes import ClaimOutcome
 from src import scoring
 from src.mock_data import POLICIES, generate_claims
 from src.models import Claim, TriageResult
-from src.scoring import driver_key
-from src.triage import triage_claim
+from src.triage import triage_with_context
 
 # Fraud factor text -> stable indicator key. The engine narrates factors as
 # prose; calibration needs to group them. Substring match, not prefix: the
@@ -50,9 +49,10 @@ def _triage_all(claims: list[Claim]) -> dict[str, TriageResult]:
     policy_map = {p.policy_number: p for p in POLICIES}
     results = {}
     for c in claims:
-        key = driver_key(c.driver.name)
-        dc = [x for x in claims if driver_key(x.driver.name) == key]
-        results[c.claim_id] = triage_claim(c, policy_map[c.policy_number], dc)
+        result = triage_with_context(c, policy_map, claims)
+        if result is None:  # mock data always has its policies; a miss is a bug
+            raise LookupError(f"Policy {c.policy_number} for claim {c.claim_id} not found")
+        results[c.claim_id] = result
     return results
 
 
