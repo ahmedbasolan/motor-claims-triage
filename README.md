@@ -29,12 +29,12 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-39 tests: `pytest tests/ -v`
+42 tests: `pytest tests/ -v`
 
-## Defects found by auditing the scoring logic
+## Defects found by auditing the logic and the stated figures
 
-All three were found by checking the rules against the 25-claim dataset rather
-than by reading the code, and all three produced confidently wrong decisions.
+All four were found by checking the rules and stated figures against the data
+rather than by reading the code, and all four produced confidently wrong output.
 
 **Fraud: "new policy" was measured as reporting lag.** The indicator computed
 `accident.date - submitted_at` and named the result `policy_age_days`. That gap
@@ -66,6 +66,16 @@ dominated the fraud score — 14 of 25 claims scored medium fraud, mostly on thi
 rule alone. The window is now bounded on both sides. Effect on the 25-claim set:
 fast-track 5 → 10, standard review 14 → 9, investigate unchanged at 6.
 
+
+**Narrative: the estimated payout ignored the policy limit.** The financial
+summary computed `repair − excess` and reported it as the estimated net payout
+without ever consulting `max_sum_insured` — a AED 120,000 repair on a AED
+100,000 policy was reported as *"Estimated Net Payout: AED 119,700"*, a figure
+the policy could never pay, and a handler reading it would reserve too much.
+The payout is now capped at the sum insured, and the cap is stated whenever it
+binds. This was found by auditing the narrative's stated figures against the
+policy data — the same failure mode as the scoring defects: a confidently
+asserted fact that the data contradicts.
 
 ## Design system — "Dossier"
 

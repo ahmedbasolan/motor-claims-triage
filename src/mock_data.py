@@ -156,7 +156,9 @@ def _build_claim(
             make=vehicle_make,
             model=vehicle_model,
             year=vehicle_year,
-            registration_number=registration if registration is not None else policy.vehicle_registration,
+            registration_number=registration
+            if registration is not None
+            else policy.vehicle_registration,
             estimated_value=vehicle_value,
         ),
         driver=DriverDetails(
