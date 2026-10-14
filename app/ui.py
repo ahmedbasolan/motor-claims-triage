@@ -1,6 +1,7 @@
-"""Streamlit UI for Motor Claims Triage Copilot."""
+"""Streamlit UI for Motor Claims Triage Copilot — Dossier theme."""
 
 import os
+import re
 import sys
 
 import streamlit as st
@@ -8,30 +9,56 @@ import streamlit as st
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.theme import (
+    aed,
+    alert_html,
+    fact_grid,
+    fmt_dt,
+    inject_theme,
+    note_block,
+    page_header,
+    risk_panel,
+    section_label,
+    stamp,
+    wordmark,
+)
 from src.mock_data import POLICIES, generate_claims
 from src.models import Recommendation, RiskLevel
 from src.triage import triage_claim
 
 st.set_page_config(
-    page_title="Motor Claims Triage Copilot",
-    page_icon="🚗",
+    page_title="Motor Claims Triage",
+    page_icon=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "brand", "mark.svg"
+    ),
     layout="wide",
 )
+inject_theme()
 
-st.title("Motor Claims Triage & Decision-Support Copilot")
-st.markdown("---")
+REC_STYLE = {
+    Recommendation.FAST_TRACK: ("FAST-TRACK", "pass"),
+    Recommendation.STANDARD_REVIEW: ("STANDARD REVIEW", "caution"),
+    Recommendation.INVESTIGATE: ("INVESTIGATE", "danger"),
+}
+RISK_STYLE = {
+    RiskLevel.LOW: ("Low", "pass"),
+    RiskLevel.MEDIUM: ("Medium", "caution"),
+    RiskLevel.HIGH: ("High", "danger"),
+}
 
 # Load data
 POLICY_MAP = {p.policy_number: p for p in POLICIES}
 ALL_CLAIMS = generate_claims()
 
-# Sidebar - Claim Selection
-st.sidebar.header("Select Claim")
-claim_options = {c.claim_id: f"{c.claim_id} - {c.driver.name}" for c in ALL_CLAIMS}
+# Sidebar — wordmark + claim selection
+st.sidebar.markdown(wordmark(), unsafe_allow_html=True)
+st.sidebar.markdown(section_label("Select claim"), unsafe_allow_html=True)
+claim_options = {c.claim_id: f"{c.claim_id} — {c.driver.name}" for c in ALL_CLAIMS}
 selected_id = st.sidebar.selectbox(
-    "Choose a claim to triage:",
+    "Claim file",
     options=list(claim_options.keys()),
     format_func=lambda x: claim_options[x],
+    label_visibility="collapsed",
 )
 
 # Find selected claim
@@ -42,90 +69,95 @@ policy = POLICY_MAP[selected_claim.policy_number]
 driver_claims = [c for c in ALL_CLAIMS if c.driver.name == selected_claim.driver.name]
 result = triage_claim(selected_claim, policy, driver_claims)
 
-# Main content
-col1, col2 = st.columns([1, 1])
+# Page header
+st.markdown(
+    page_header("Motor Claims Triage", "Decision-support copilot · UAE motor · Prototype"),
+    unsafe_allow_html=True,
+)
+
+col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
-    st.subheader("Claim Details")
-    st.markdown(f"**Claim ID:** {selected_claim.claim_id}")
-    st.markdown(f"**Policy:** {selected_claim.policy_number}")
-    st.markdown(f"**Driver:** {selected_claim.driver.name} (Age: {selected_claim.driver.age})")
-    st.markdown(f"**License Tenure:** {selected_claim.driver.license_tenure_years} years")
-    st.markdown(
-        f"**Vehicle:** {selected_claim.vehicle.year} {selected_claim.vehicle.make} "
-        f"{selected_claim.vehicle.model}"
-    )
-    st.markdown(f"**Registration:** {selected_claim.vehicle.registration_number}")
-    st.markdown(f"**Vehicle Value:** AED {selected_claim.vehicle.estimated_value:,.0f}")
-    st.markdown(f"**Accident Date:** {selected_claim.accident.date.strftime('%Y-%m-%d %H:%M')}")
-    st.markdown(f"**Location:** {selected_claim.accident.location}")
-    st.markdown(f"**Description:** {selected_claim.accident.description}")
-    if selected_claim.repair_estimate:
-        cost = selected_claim.repair_estimate.estimated_cost
-        st.markdown(f"**Repair Estimate:** AED {cost:,.0f}")
-        st.markdown(f"**Garage:** {selected_claim.repair_estimate.garage_name}")
+    st.markdown(section_label("Claim details"), unsafe_allow_html=True)
+
+    repair = selected_claim.repair_estimate
+    facts = [
+        ("Claim ID", selected_claim.claim_id),
+        ("Policy", selected_claim.policy_number),
+        ("Driver", selected_claim.driver.name),
+        ("Age", f"{selected_claim.driver.age} years"),
+        ("Licence held", f"{selected_claim.driver.license_tenure_years} years"),
+        (
+            "Vehicle",
+            f"{selected_claim.vehicle.year} {selected_claim.vehicle.make} "
+            f"{selected_claim.vehicle.model}",
+        ),
+        ("Registration", selected_claim.vehicle.registration_number),
+        ("Vehicle value", aed(selected_claim.vehicle.estimated_value)),
+        ("Accident", fmt_dt(selected_claim.accident.date)),
+        ("Location", selected_claim.accident.location),
+        ("Repair estimate", aed(repair.estimated_cost) if repair else "—"),
+        ("Garage", repair.garage_name if repair else "—"),
+        ("Vehicles involved", str(selected_claim.accident.num_vehicles_involved)),
+        (
+            "Injury reported",
+            "Yes" if selected_claim.accident.injury_reported else "No",
+        ),
+        (
+            "Liability disputed",
+            "Yes" if selected_claim.accident.liability_disputed else "No",
+        ),
+    ]
+    st.markdown(fact_grid(facts), unsafe_allow_html=True)
+
+    st.markdown(section_label("Incident description"), unsafe_allow_html=True)
+    st.markdown(note_block(selected_claim.accident.description), unsafe_allow_html=True)
 
 with col2:
-    st.subheader("Triage Result")
+    st.markdown(section_label("Triage result"), unsafe_allow_html=True)
 
-    # Recommendation badge
-    rec_colors = {
-        Recommendation.FAST_TRACK: "green",
-        Recommendation.STANDARD_REVIEW: "orange",
-        Recommendation.INVESTIGATE: "red",
-    }
-    rec_labels = {
-        Recommendation.FAST_TRACK: "FAST-TRACK",
-        Recommendation.STANDARD_REVIEW: "STANDARD REVIEW",
-        Recommendation.INVESTIGATE: "INVESTIGATE",
-    }
-
-    rec_label = rec_labels[result.recommendation]
-    rec_color = rec_colors[result.recommendation]
-    st.markdown(f"### Recommendation: :{rec_color}[{rec_label}]")
+    rec_label, rec_kind = REC_STYLE[result.recommendation]
+    st.markdown(stamp(rec_label, rec_kind), unsafe_allow_html=True)
 
     # Coverage
-    st.markdown("#### Coverage Check")
+    st.markdown(section_label("Coverage check"), unsafe_allow_html=True)
     if result.coverage.is_covered:
-        st.success("Coverage: CLEAR")
+        st.markdown(stamp("Covered", "pass", compact=True), unsafe_allow_html=True)
     else:
-        st.error("Coverage: ISSUES DETECTED")
+        st.markdown(stamp("Exclusion triggered", "danger", compact=True), unsafe_allow_html=True)
         for exclusion in result.coverage.exclusions_triggered:
-            st.warning(f"Exclusion: {exclusion.replace('_', ' ').title()}")
+            label = exclusion.replace("_", " ").strip().title()
+            st.markdown(alert_html(f"Exclusion — {label}", "danger"), unsafe_allow_html=True)
 
     for note in result.coverage.notes:
-        st.info(note)
+        st.markdown(alert_html(note, "info"), unsafe_allow_html=True)
 
     # Scoring
-    st.markdown("#### Risk Scoring")
-
-    risk_colors = {RiskLevel.LOW: "green", RiskLevel.MEDIUM: "orange", RiskLevel.HIGH: "red"}
-
+    st.markdown(section_label("Risk scoring"), unsafe_allow_html=True)
     score_col1, score_col2 = st.columns(2)
+
+    c_label, c_kind = RISK_STYLE[result.scoring.complexity_score]
     with score_col1:
         st.markdown(
-            f"**Complexity:** :{risk_colors[result.scoring.complexity_score]}"
-            f"[{result.scoring.complexity_score.value.upper()}]"
+            risk_panel("Complexity", c_label, c_kind, result.scoring.complexity_factors),
+            unsafe_allow_html=True,
         )
-        for factor in result.scoring.complexity_factors:
-            st.markdown(f"- {factor}")
 
+    f_label, f_kind = RISK_STYLE[result.scoring.fraud_risk_score]
     with score_col2:
         st.markdown(
-            f"**Fraud Risk:** :{risk_colors[result.scoring.fraud_risk_score]}"
-            f"[{result.scoring.fraud_risk_score.value.upper()}]"
+            risk_panel("Fraud risk", f_label, f_kind, result.scoring.fraud_risk_factors),
+            unsafe_allow_html=True,
         )
-        for factor in result.scoring.fraud_risk_factors:
-            st.markdown(f"- {factor}")
 
-# Narrative section
-st.markdown("---")
-st.subheader("Triage Rationale")
-st.markdown(result.narrative)
+# Narrative section — strip the generator's own H1 (the eyebrow above is the
+# heading here); render the rest as real markdown so bold labels and lists work.
+narrative_body = re.sub(r"^##[^\n]*\n+", "", result.narrative).strip()
+st.markdown(section_label("Triage rationale"), unsafe_allow_html=True)
+st.markdown(narrative_body)
 
 # Bulk triage view
-st.markdown("---")
-st.subheader("Bulk Triage Overview")
+st.markdown(section_label("Bulk triage — all claims"), unsafe_allow_html=True)
 
 bulk_results = []
 for claim in ALL_CLAIMS:
@@ -134,30 +166,29 @@ for claim in ALL_CLAIMS:
         dc = [c for c in ALL_CLAIMS if c.driver.name == claim.driver.name]
         r = triage_claim(claim, p, dc)
         repair = claim.repair_estimate
-        repair_str = f"AED {repair.estimated_cost:,.0f}" if repair else "N/A"
+        repair_str = aed(repair.estimated_cost) if repair else "—"
         bulk_results.append(
             {
                 "Claim ID": claim.claim_id,
                 "Driver": claim.driver.name,
                 "Vehicle": f"{claim.vehicle.year} {claim.vehicle.make}",
-                "Repair Cost": repair_str,
+                "Repair cost": repair_str,
                 "Coverage": "Clear" if r.coverage.is_covered else "Issues",
                 "Complexity": r.scoring.complexity_score.value.upper(),
-                "Fraud Risk": r.scoring.fraud_risk_score.value.upper(),
-                "Recommendation": rec_labels[r.recommendation],
+                "Fraud risk": r.scoring.fraud_risk_score.value.upper(),
+                "Recommendation": REC_STYLE[r.recommendation][0],
             }
         )
 
-st.dataframe(bulk_results, use_container_width=True)
+st.dataframe(bulk_results, width="stretch", hide_index=True)
 
 # Stats
-st.markdown("---")
-st.subheader("Triage Statistics")
-fast_count = sum(1 for r in bulk_results if "FAST-TRACK" in r["Recommendation"])
-standard_count = sum(1 for r in bulk_results if "STANDARD" in r["Recommendation"])
-investigate_count = sum(1 for r in bulk_results if "INVESTIGATE" in r["Recommendation"])
+st.markdown(section_label("Triage statistics"), unsafe_allow_html=True)
+fast_count = sum(1 for r in bulk_results if r["Recommendation"] == "FAST-TRACK")
+standard_count = sum(1 for r in bulk_results if r["Recommendation"] == "STANDARD REVIEW")
+investigate_count = sum(1 for r in bulk_results if r["Recommendation"] == "INVESTIGATE")
 
 stat_col1, stat_col2, stat_col3 = st.columns(3)
-stat_col1.metric("Fast-Track", fast_count)
-stat_col2.metric("Standard Review", standard_count)
+stat_col1.metric("Fast-track", fast_count)
+stat_col2.metric("Standard review", standard_count)
 stat_col3.metric("Investigate", investigate_count)

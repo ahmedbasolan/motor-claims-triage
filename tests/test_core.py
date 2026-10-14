@@ -368,11 +368,11 @@ class TestTriage:
 
 
 class TestMockData:
-    def test_generates_25_claims(self):
-        from src.mock_data import generate_claims
+    def test_generates_labelled_claims(self):
+        from src.mock_data import EXPECTED_RECOMMENDATIONS, generate_claims
 
         claims = generate_claims()
-        assert len(claims) == 25
+        assert len(claims) == len(EXPECTED_RECOMMENDATIONS) == 38
 
     def test_all_claims_have_valid_policies(self):
         from src.mock_data import POLICIES, generate_claims
@@ -391,3 +391,83 @@ class TestMockData:
             policy = policy_map[claim.policy_number]
             result = triage_claim(claim, policy)
             assert result.recommendation is not None
+
+
+class TestGroundTruth:
+    """The dataset carries its own labels: every claim has an expected
+    recommendation in EXPECTED_RECOMMENDATIONS. These tests assert the engine
+    reproduces them, so a silent behaviour change fails here instead of
+    shipping."""
+
+    def _triage_all(self):
+        from src.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
+
+        policy_map = {p.policy_number: p for p in POLICIES}
+        claims = generate_claims()
+        results = {}
+        for claim in claims:
+            policy = policy_map[claim.policy_number]
+            driver_claims = [c for c in claims if c.driver.name == claim.driver.name]
+            results[claim.claim_id] = triage_claim(claim, policy, driver_claims)
+        return results, EXPECTED_RECOMMENDATIONS
+
+    def test_every_claim_matches_its_label(self):
+        results, expected = self._triage_all()
+        mismatches = [
+            (cid, exp, results[cid].recommendation.value)
+            for cid, exp in expected.items()
+            if results[cid].recommendation.value != exp
+        ]
+        assert mismatches == [], f"engine/label mismatches: {mismatches}"
+
+    def test_every_coverage_rule_fires_at_least_once(self):
+        results, _ = self._triage_all()
+        fired = {e for r in results.values() for e in r.coverage.exclusions_triggered}
+        # Every exclusion the coverage checker can emit must appear in the
+        # dataset, otherwise that branch ships unverified.
+        assert fired == {
+            "policy_not_active",
+            "excluded_driver",
+            "vehicle_mismatch",
+            "rental_use",
+            "ride_hailing_use",
+            "taxi_use",
+            "delivery_use",
+        }
+
+    def test_every_fraud_rule_fires_at_least_once(self):
+        results, _ = self._triage_all()
+        factors = " | ".join(f for r in results.values() for f in r.scoring.fraud_risk_factors)
+        assert "previous claim" in factors  # repeat-claims window
+        assert "New policy" in factors  # recently-purchased policy indicator
+        assert "inconsistency" in factors  # story-inconsistency keywords
+        assert "documentation" in factors  # thin-documentation indicator
+
+    def test_every_complexity_rule_fires_at_least_once(self):
+        results, _ = self._triage_all()
+        factors = " | ".join(f for r in results.values() for f in r.scoring.complexity_factors)
+        assert "Multiple vehicles" in factors
+        assert "Injury" in factors
+        assert "Liability disputed" in factors
+        assert "total loss" in factors  # >70% repair-to-value tier
+        assert "of vehicle value" in factors  # 40-70% tier
+        assert "Young driver" in factors
+
+    def test_third_party_advisory_is_a_note_not_a_denial(self):
+        results, _ = self._triage_all()
+        r = results["CLM-033"]
+        assert r.coverage.is_covered is True
+        assert any("Third-party policy" in n for n in r.coverage.notes)
+        assert r.recommendation == Recommendation.FAST_TRACK
+
+    def test_negative_controls_stay_covered(self):
+        """The two defect-regression controls: a delivery word on a
+        rental-excluding policy, and a new policy with a low-value claim,
+        must not trigger their indicators."""
+        results, _ = self._triage_all()
+        assert results["CLM-030"].coverage.is_covered is True
+        assert results["CLM-030"].coverage.exclusions_triggered == []
+        assert not any(
+            "New policy" in f for f in results["CLM-037"].scoring.fraud_risk_factors
+        )
+
