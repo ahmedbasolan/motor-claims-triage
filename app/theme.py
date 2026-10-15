@@ -4,12 +4,15 @@ Loads the brand fonts and tokens (brand/tokens.css) and restyles Streamlit's
 DOM to the brand book (brand/BRAND.md). Also exposes small HTML helpers for
 the signature components: stamps, chips, fact grids, case notes, risk panels.
 
-All dynamic strings passed to the HTML helpers are escaped here.
+All dynamic strings passed to the HTML helpers are escaped here; prose
+surfaces additionally wrap money, dates and identifiers in mono spans per the
+brand book's mono rule ("IDs are never sans").
 """
 
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -426,6 +429,13 @@ p[data-testid="stWidgetLabel"] {
   margin: 0;
 }
 
+/* Inline values: money, dates and identifiers inside prose stay mono
+   (brand book's mono rule) while the prose around them stays sans. */
+.mct-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Case note — narrative / descriptions */
 .mct-note {
   background: var(--color-bg-surface);
@@ -499,6 +509,25 @@ def _esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+# The brand book's mono rule (brand/BRAND.md, "the spine of the system"):
+# values a handler reads back on a call — money, dates, identifiers — are mono
+# wherever they appear, while prose itself is never mono. Prose surfaces wrap
+# values individually at render time via inline_values().
+_VALUE_RE = re.compile(
+    r"AED \d{1,3}(?:,\d{3})*"  # money: AED 62,000
+    r"|\b\d{4}-\d{2}-\d{2}\b"  # ISO dates: 2024-05-15
+    r"|\b\d{1,2} [A-Z][a-z]{2} \d{4}\b"  # text dates: 15 May 2024
+    r"|\b[A-Z]{3}-\d{4}-\d{3}\b"  # policy numbers: POL-2024-001
+    r"|\b[A-Z]{1,3}-\d{3,6}\b"  # claim IDs / registrations: CLM-001, A-12345
+)
+
+
+def inline_values(text: object) -> str:
+    """Escape text, then wrap each value occurrence in a mono ``.mct-val`` span."""
+    escaped = _esc(text)
+    return _VALUE_RE.sub(lambda m: f'<span class="mct-val">{m.group(0)}</span>', escaped)
+
+
 # ── Formatting ────────────────────────────────────────────────────────
 
 
@@ -541,17 +570,17 @@ def fact_grid(items: list[tuple[str, str]]) -> str:
 
 
 def note_block(text: str) -> str:
-    return f'<div class="mct-note">{_esc(text)}</div>'
+    return f'<div class="mct-note">{inline_values(text)}</div>'
 
 
 def alert_html(text: str, kind: Kind = "info") -> str:
     cls = "" if kind == "info" else f" mct-alert--{kind}"
-    return f'<div class="mct-alert{cls}">{_esc(text)}</div>'
+    return f'<div class="mct-alert{cls}">{inline_values(text)}</div>'
 
 
 def risk_panel(title: str, level_label: str, kind: Kind, factors: list[str]) -> str:
     if factors:
-        items = "".join(f"<li>{_esc(f)}</li>" for f in factors)
+        items = "".join(f"<li>{inline_values(f)}</li>" for f in factors)
         body = f'<ul class="mct-factors">{items}</ul>'
     else:
         body = '<p class="mct-empty">No factors recorded.</p>'

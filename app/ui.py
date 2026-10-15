@@ -15,6 +15,7 @@ from app.theme import (
     fact_grid,
     fmt_dt,
     inject_theme,
+    inline_values,
     note_block,
     page_header,
     risk_panel,
@@ -153,9 +154,10 @@ with col2:
 
 # Narrative section — strip the generator's own H1 (the eyebrow above is the
 # heading here); render the rest as real markdown so bold labels and lists work.
+# Values (money, policy numbers) go into mono spans via inline_values().
 narrative_body = re.sub(r"^##[^\n]*\n+", "", result.narrative).strip()
 st.markdown(section_label("Triage rationale"), unsafe_allow_html=True)
-st.markdown(narrative_body)
+st.markdown(inline_values(narrative_body), unsafe_allow_html=True)
 
 # Bulk triage view
 st.markdown(section_label("Bulk triage — all claims"), unsafe_allow_html=True)
