@@ -100,9 +100,7 @@ p[data-testid="stWidgetLabel"] {
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
-.stButton button,
-[data-testid="baseButton-primary"],
-[data-testid="baseButton-secondary"] {
+.stButton button {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -112,20 +110,17 @@ p[data-testid="stWidgetLabel"] {
   color: var(--color-fg-default);
   transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
-.stButton button:hover,
-[data-testid="baseButton-secondary"]:hover {
+.stButton button:hover {
   background: var(--color-bg-sunken);
   border-color: var(--color-border-strong);
   color: var(--color-fg-default);
 }
-.stButton button:active,
-[data-testid="baseButton-secondary"]:active {
+.stButton button:active {
   background: var(--color-paper-300, #e6dcc8);
 }
 
 /* ── Inputs / select ────────────────────────────────────────────── */
 [data-testid="stSelectbox"] > div > div,
-[data-testid="stSelectbox"] [data-baseweb="select"] > div,
 [data-testid="stTextInput"] > div > div > input,
 [data-testid="stNumberInput"] > div > div > input {
   background: var(--color-bg-surface);
@@ -146,58 +141,25 @@ p[data-testid="stWidgetLabel"] {
   font-family: var(--font-mono);
 }
 
-/* ── Alerts (tinted paper + left rule, no icon balloons) ────────── */
-[data-testid="stAlert"],
-[data-testid="stSuccess"],
-[data-testid="stError"],
-[data-testid="stWarning"],
-[data-testid="stInfo"] {
+/* ── Alerts (paper + left rule, no icon balloons) ───────────────── */
+/* Per-status tints are deliberately absent: the alert kind never
+   reaches the DOM (no data-kind in any 1.49 or 1.64 bundle, and the
+   stSuccess/stError/stWarning/stInfo testids do not exist), so those
+   rules matched nothing in any supported Streamlit. The brand's tinted
+   alert spec lives on .mct-alert, which the app renders itself. */
+[data-testid="stAlert"] {
   background: var(--color-bg-surface);
   border: none;
   border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
   color: var(--color-fg-default);
 }
-[data-testid="stAlert"] > div > div > svg,
-[data-testid="stSuccess"] svg,
-[data-testid="stError"] svg,
-[data-testid="stWarning"] svg,
-[data-testid="stInfo"] svg {
+[data-testid="stAlert"] > div > div > svg {
   display: none;
 }
-[data-testid="stAlert"] p,
-[data-testid="stSuccess"] p,
-[data-testid="stError"] p,
-[data-testid="stWarning"] p,
-[data-testid="stInfo"] p {
+[data-testid="stAlert"] p {
   color: inherit;
   font-size: var(--text-sm);
-}
-[data-testid="stSuccess"],
-[data-testid="stAlert"][data-kind="success"] {
-  border-left-color: var(--color-pass);
-  background: var(--color-pass-tint);
-}
-[data-testid="stSuccess"] p,
-[data-testid="stAlert"][data-kind="success"] p { color: var(--color-pass-ink); }
-[data-testid="stError"],
-[data-testid="stAlert"][data-kind="error"] {
-  border-left-color: var(--color-danger);
-  background: var(--color-danger-tint);
-}
-[data-testid="stError"] p,
-[data-testid="stAlert"][data-kind="error"] p { color: var(--color-danger-ink); }
-[data-testid="stWarning"],
-[data-testid="stAlert"][data-kind="warning"] {
-  border-left-color: var(--color-caution);
-  background: var(--color-caution-tint);
-}
-[data-testid="stWarning"] p,
-[data-testid="stAlert"][data-kind="warning"] p { color: var(--color-caution-ink); }
-[data-testid="stInfo"],
-[data-testid="stAlert"][data-kind="info"] {
-  border-left-color: var(--color-border-strong);
-  background: var(--color-bg-surface);
 }
 
 /* ── Metrics ────────────────────────────────────────────────────── */
@@ -264,7 +226,6 @@ p[data-testid="stWidgetLabel"] {
   font-size: var(--text-sm);
   color: var(--color-fg-default);
 }
-[data-testid="stDivider"] hr,
 .stApp hr {
   border: none;
   border-top: 1px solid var(--color-border);
