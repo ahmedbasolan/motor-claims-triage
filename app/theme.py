@@ -82,6 +82,14 @@ code, pre, [data-testid="stCode"] {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
+/* Streamlit gives markdown containers its own default face ("Source
+   Sans"), which beats the .stApp inheritance - prose must be the brand
+   body face wherever it renders (verified: tests/test_render_browser.py). */
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li {
+  font-family: var(--font-body);
+}
 
 /* ── Sidebar brand + widget labels ──────────────────────────────── */
 [data-testid="stSidebar"] p,
@@ -129,7 +137,11 @@ p[data-testid="stWidgetLabel"] {
   color: var(--color-fg-default);
   font-family: var(--font-body);
 }
-[data-testid="stSelectbox"] div[role="button"] {
+/* The claim selector is a react-aria ComboBox: the selected ID sits in
+   input[role="combobox"] - there is no div[role="button"] in the
+   rendered DOM (tests/test_render_browser.py reads the real tree).
+   IDs are never sans, so the field itself is mono. */
+[data-testid="stSelectbox"] input[role="combobox"] {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
