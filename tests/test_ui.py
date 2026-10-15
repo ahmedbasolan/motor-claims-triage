@@ -8,7 +8,8 @@ EXPECTED_RECOMMENDATIONS label - a dashboard that shows the wrong verdict,
 stale details, or crashes on selection fails here even when the engine and
 API are correct) and test_every_claim_wraps_prose_values_in_mono_spans (the
 brand mono rule: money, dates and identifiers in prose render in mono spans
-and the prose around them is untouched).
+and the prose around them is untouched). test_every_claim_renders_expected_
+content extends the stamp round-trip to every figure on the claim file.
 """
 
 import html
@@ -43,6 +44,13 @@ METRIC_OF_STAMP = {
     "FAST-TRACK": "Fast-track",
     "STANDARD REVIEW": "Standard review",
     "INVESTIGATE": "Investigate",
+}
+
+# Risk chip contract (RISK_STYLE in app/ui.py), restated.
+RISK_CHIP = {
+    "low": ("Low", "pass"),
+    "medium": ("Medium", "caution"),
+    "high": ("High", "danger"),
 }
 
 # Value-span contract (brand/BRAND.md mono rule: money, dates and identifiers
@@ -126,6 +134,29 @@ def _expected_alerts(res) -> list[str]:
     return alerts
 
 
+def _expected_facts(claim) -> dict[str, str]:
+    """Fact-grid contract: label -> displayed value, computed from the claim
+    with the stated formats restated here (AED 1,234 / 05 Sep 2024, 00:00)."""
+    r = claim.repair_estimate
+    return {
+        "Claim ID": claim.claim_id,
+        "Policy": claim.policy_number,
+        "Driver": claim.driver.name,
+        "Age": f"{claim.driver.age} years",
+        "Licence held": f"{claim.driver.license_tenure_years} years",
+        "Vehicle": f"{claim.vehicle.year} {claim.vehicle.make} {claim.vehicle.model}",
+        "Registration": claim.vehicle.registration_number,
+        "Vehicle value": f"AED {claim.vehicle.estimated_value:,.0f}",
+        "Accident": claim.accident.date.strftime("%d %b %Y, %H:%M"),
+        "Location": claim.accident.location,
+        "Repair estimate": f"AED {r.estimated_cost:,.0f}" if r else "—",
+        "Garage": r.garage_name if r else "—",
+        "Vehicles involved": str(claim.accident.num_vehicles_involved),
+        "Injury reported": "Yes" if claim.accident.injury_reported else "No",
+        "Liability disputed": "Yes" if claim.accident.liability_disputed else "No",
+    }
+
+
 def test_dashboard_renders_without_exception():
     at = _run()
     assert not at.exception, f"dashboard crashed on load: {at.exception}"
@@ -133,12 +164,12 @@ def test_dashboard_renders_without_exception():
 
 def test_sidebar_lists_every_labelled_claim():
     at = _run()
-    # options carry format_func output ("CLM-001 - Name"); the raw values are
+    # options are format_func output ("CLM-001 — Name"); the raw values are
     # claim ids, which is what set_value accepts - verified by the round-trip
     # test below.
-    options = at.sidebar.selectbox[0].options
-    ids = {str(o).split(" ")[0] for o in options}
-    assert ids == set(EXPECTED_RECOMMENDATIONS)
+    options = {str(o) for o in at.sidebar.selectbox[0].options}
+    expected = {f"{cid} — {CLAIMS_BY_ID[cid].driver.name}" for cid in EXPECTED_RECOMMENDATIONS}
+    assert options == expected
 
 
 def test_default_selection_shows_first_claim():
@@ -149,10 +180,11 @@ def test_default_selection_shows_first_claim():
     assert any(span in v for v in _spans(at)), f"stamp {label!r} not rendered"
 
 
-def test_every_claim_shows_ground_truth_stamp():
+def test_every_claim_renders_expected_content():
     """Round-trip all 38 claims through the sidebar selector: the stamp must
-    carry the ground-truth label and the fact grid must show the selected
-    claim's id (not a stale one)."""
+    carry the ground-truth label, the fact grid must show this claim's fields
+    (not a stale claim's), the coverage stamp must match the engine's
+    is_covered, and both risk chips must carry the engine's level."""
     at = _run()
     failures = []
     for cid, expected in EXPECTED_RECOMMENDATIONS.items():
@@ -161,27 +193,82 @@ def test_every_claim_shows_ground_truth_stamp():
         if at.exception:
             failures.append(f"{cid}: crashed: {at.exception[0]}")
             continue
+        claim = CLAIMS_BY_ID[cid]
+        res = _result(cid)
+        vals = _markdown(at)
+        joined = "\n".join(vals)
+
         label, kind = REC_STAMP[expected]
         span = f'<span class="mct-stamp mct-stamp--{kind}">{label}</span>'
         if not any(span in v for v in _spans(at)):
             failures.append(f"{cid}: expected stamp {label!r} not rendered")
-        if not any(f"<dd>{cid}</dd>" in v for v in _markdown(at)):
-            failures.append(f"{cid}: fact grid does not show {cid}")
+
+        fact_text = "\n".join(v for v in vals if 'class="mct-facts"' in v)
+        got_facts = {
+            html.unescape(k): html.unescape(v)
+            for k, v in re.findall(r"<dt>(.*?)</dt><dd>(.*?)</dd>", fact_text, re.S)
+        }
+        want_facts = _expected_facts(claim)
+        for name, want in want_facts.items():
+            if got_facts.get(name) != want:
+                failures.append(f"{cid}: fact {name!r}: {got_facts.get(name)!r} != {want!r}")
+        for name in set(got_facts) - set(want_facts):
+            failures.append(f"{cid}: unexpected fact {name!r}")
+
+        cov_span = (
+            'mct-stamp--pass mct-stamp--compact">Covered<'
+            if res.coverage.is_covered
+            else 'mct-stamp--danger mct-stamp--compact">Exclusion triggered<'
+        )
+        if cov_span not in joined:
+            failures.append(f"{cid}: coverage stamp wrong (is_covered={res.coverage.is_covered})")
+
+        for title, score in (
+            ("Complexity", res.scoring.complexity_score),
+            ("Fraud risk", res.scoring.fraud_risk_score),
+        ):
+            want_label, want_kind = RISK_CHIP[score.value]
+            panel = next((v for v in vals if f'mct-card__title">{title}<' in v), "")
+            m = re.search(r'mct-chip mct-chip--(\w+)">([^<]+)<', panel)
+            if m is None or m.group(1) != want_kind or m.group(2) != want_label:
+                failures.append(
+                    f"{cid}: {title} chip: "
+                    f"{(m.group(1), m.group(2)) if m else None} != {(want_kind, want_label)}"
+                )
     assert failures == []
 
 
 def test_bulk_table_matches_ground_truth():
-    """The bulk view's recommendation column is checked against the labels
-    for all 38 claims - the whole-table equivalent of the stamp round-trip."""
+    """The bulk view is checked column by column against the claims and the
+    engine for all 38 claims - the whole-table equivalent of the per-claim
+    round-trip."""
     at = _run()
     df = at.dataframe[0].value
     assert len(df) == 38
-    got = dict(zip(df["Claim ID"], df["Recommendation"]))
-    expected = {cid: REC_STAMP[exp][0] for cid, exp in EXPECTED_RECOMMENDATIONS.items()}
-    mismatches = {
-        cid: (expected[cid], got.get(cid)) for cid in expected if got.get(cid) != expected[cid]
-    }
-    assert mismatches == {}
+    rows = {row["Claim ID"]: row for row in df.to_dict("records")}
+    failures = []
+    for cid, exp in EXPECTED_RECOMMENDATIONS.items():
+        claim = CLAIMS_BY_ID[cid]
+        res = _result(cid)
+        r = claim.repair_estimate
+        want = {
+            "Claim ID": cid,
+            "Driver": claim.driver.name,
+            "Vehicle": f"{claim.vehicle.year} {claim.vehicle.make}",
+            "Repair cost": f"AED {r.estimated_cost:,.0f}" if r else "—",
+            "Coverage": "Clear" if res.coverage.is_covered else "Issues",
+            "Complexity": res.scoring.complexity_score.value.upper(),
+            "Fraud risk": res.scoring.fraud_risk_score.value.upper(),
+            "Recommendation": REC_STAMP[exp][0],
+        }
+        row = rows.get(cid)
+        if row is None:
+            failures.append(f"{cid}: missing from bulk table")
+            continue
+        for col, want_val in want.items():
+            if row.get(col) != want_val:
+                failures.append(f"{cid}: {col}: {row.get(col)!r} != {want_val!r}")
+    assert failures == []
 
 
 def test_stats_metrics_match_label_distribution():
