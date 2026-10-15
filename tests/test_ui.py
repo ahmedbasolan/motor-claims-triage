@@ -1,22 +1,27 @@
 """UI tests: the Streamlit dashboard via streamlit.testing.v1.AppTest.
 
 The unit tests verify the engine and the API tests verify the HTTP surface;
-these verify what a handler actually sees. The load-bearing test is
-test_every_claim_shows_ground_truth_stamp: each of the 38 labelled claims is
+these verify what a handler actually sees. The load-bearing tests are
+test_every_claim_shows_ground_truth_stamp (each of the 38 labelled claims is
 selected in the sidebar and the rendered stamp must carry its
 EXPECTED_RECOMMENDATIONS label - a dashboard that shows the wrong verdict,
 stale details, or crashes on selection fails here even when the engine and
-API are correct.
+API are correct) and test_every_claim_wraps_prose_values_in_mono_spans (the
+brand mono rule: money, dates and identifiers in prose render in mono spans
+and the prose around them is untouched).
 """
 
+import html
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from streamlit.testing.v1 import AppTest
 
-from src.mock_data import EXPECTED_RECOMMENDATIONS
+from src.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
+from src.triage import triage_with_context
 
 _APP_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app", "ui.py"
@@ -40,6 +45,28 @@ METRIC_OF_STAMP = {
     "INVESTIGATE": "Investigate",
 }
 
+# Value-span contract (brand/BRAND.md mono rule: money, dates and identifiers
+# are mono wherever they appear, prose is never mono, "IDs are never sans").
+# The dashboard wraps each occurrence in <span class="mct-val">. Restated,
+# like REC_STAMP, rather than imported from the code under test.
+VAL_OPEN = '<span class="mct-val">'
+VAL_CLOSE = "</span>"
+VAL_RE = re.compile(
+    r"AED \d{1,3}(?:,\d{3})*"  # money
+    r"|\b\d{4}-\d{2}-\d{2}\b"  # ISO dates
+    r"|\b\d{1,2} [A-Z][a-z]{2} \d{4}\b"  # text dates
+    r"|\b[A-Z]{3}-\d{4}-\d{3}\b"  # policy numbers
+    r"|\b[A-Z]{1,3}-\d{3,6}\b"  # claim IDs / registrations
+)
+
+# Expected side: the claims and their engine results, computed independently
+# of ui.py - the test compares rendered output against these, not against
+# whatever ui.py itself derived.
+CLAIMS = generate_claims()
+CLAIMS_BY_ID = {c.claim_id: c for c in CLAIMS}
+POLICY_MAP = {p.policy_number: p for p in POLICIES}
+RESULTS = {c.claim_id: triage_with_context(c, POLICY_MAP, CLAIMS) for c in CLAIMS}
+
 
 def _run() -> AppTest:
     at = AppTest.from_file(_APP_PATH, default_timeout=60)
@@ -53,6 +80,50 @@ def _markdown(at: AppTest) -> list[str]:
 
 def _spans(at: AppTest) -> list[str]:
     return [v for v in _markdown(at) if 'class="mct-stamp mct-stamp--' in v]
+
+
+def _result(cid: str):
+    res = RESULTS[cid]
+    assert res is not None, f"engine produced no result for {cid}"
+    return res
+
+
+def _strip_vals(text: str) -> str:
+    return text.replace(VAL_OPEN, "").replace(VAL_CLOSE, "")
+
+
+def _unwrapped_values(text: str) -> list[str]:
+    """Value occurrences not immediately inside a mono span."""
+    bad = []
+    for m in VAL_RE.finditer(text):
+        if not (text[: m.start()].endswith(VAL_OPEN) and text[m.end() :].startswith(VAL_CLOSE)):
+            bad.append(m.group(0))
+    return bad
+
+
+def _expected_narrative_body(narrative: str) -> str:
+    """Drop the generator's leading heading - computed independently of the
+    regex ui.py uses, so both must agree with the engine text."""
+    lines = narrative.split("\n")
+    i = 0
+    if lines and lines[0].lstrip().startswith("#"):
+        i = 1
+        while i < len(lines) and lines[i].strip() == "":
+            i += 1
+    return "\n".join(lines[i:]).strip()
+
+
+def _expected_alerts(res) -> list[str]:
+    """Exclusion alerts (title-cased tokens, ui's display transform) followed
+    by the coverage notes verbatim."""
+    alerts = []
+    if not res.coverage.is_covered:
+        alerts += [
+            f"Exclusion — {e.replace('_', ' ').strip().title()}"
+            for e in res.coverage.exclusions_triggered
+        ]
+    alerts += list(res.coverage.notes)
+    return alerts
 
 
 def test_dashboard_renders_without_exception():
@@ -122,3 +193,83 @@ def test_stats_metrics_match_label_distribution():
         expected_counts[REC_STAMP[exp][0]] += 1
     seen = {m.label: int(m.value) for m in at.metric}
     assert seen == {METRIC_OF_STAMP[stamp]: n for stamp, n in expected_counts.items()}
+
+
+def test_every_claim_wraps_prose_values_in_mono_spans():
+    """Brand mono rule regression: every money/date/identifier occurrence in
+    the prose surfaces (narrative, coverage alerts, risk factors, incident
+    note) renders inside a mono .mct-val span, the surrounding prose is
+    unchanged, and the .mct-val CSS rule reaches the page (spans without it
+    would silently render in the body face)."""
+    at = _run()
+    failures = []
+
+    css = next((v for v in _markdown(at) if ".mct-val" in v), "")
+    if not re.search(r"\.mct-val\s*\{[^}]*font-family:\s*var\(--font-mono\)", css):
+        failures.append("injected CSS lacks .mct-val { font-family: var(--font-mono) ... }")
+
+    for cid in EXPECTED_RECOMMENDATIONS:
+        at.sidebar.selectbox[0].set_value(cid)
+        at.run()
+        if at.exception:
+            failures.append(f"{cid}: crashed: {at.exception[0]}")
+            continue
+        res = _result(cid)
+        claim = CLAIMS_BY_ID[cid]
+        vals = _markdown(at)
+
+        # Narrative: content intact once spans are stripped, values wrapped.
+        want_body = _expected_narrative_body(res.narrative)
+        got_narr = next(
+            (v for v in vals if _strip_vals(html.unescape(v)).strip() == want_body), None
+        )
+        if got_narr is None:
+            failures.append(f"{cid}: narrative body not rendered intact")
+        else:
+            bad = _unwrapped_values(got_narr)
+            if bad:
+                failures.append(f"{cid}: narrative values not in mono spans: {bad}")
+
+        # Coverage alerts: expected texts in order, values wrapped.
+        raw_alerts = [
+            m for v in vals for m in re.findall(r'<div class="mct-alert[^"]*">(.*?)</div>', v, re.S)
+        ]
+        got_alerts = [_strip_vals(html.unescape(a)) for a in raw_alerts]
+        if got_alerts != _expected_alerts(res):
+            failures.append(f"{cid}: alerts changed: {got_alerts!r} != {_expected_alerts(res)!r}")
+        bad = [b for a in raw_alerts for b in _unwrapped_values(a)]
+        if bad:
+            failures.append(f"{cid}: alert values not in mono spans: {bad}")
+
+        # Risk factors: factor text intact, any embedded values wrapped.
+        for title, factors in (
+            ("Complexity", res.scoring.complexity_factors),
+            ("Fraud risk", res.scoring.fraud_risk_factors),
+        ):
+            panel = next((v for v in vals if f'mct-card__title">{title}<' in v), None)
+            if panel is None:
+                failures.append(f"{cid}: {title} panel missing")
+                continue
+            raw_lis = re.findall(r"<li>(.*?)</li>", panel)
+            if factors:
+                got_lis = [_strip_vals(html.unescape(x)) for x in raw_lis]
+                if got_lis != factors:
+                    failures.append(f"{cid}: {title} factors changed: {got_lis!r} != {factors!r}")
+                bad = [b for li in raw_lis for b in _unwrapped_values(li)]
+                if bad:
+                    failures.append(f"{cid}: {title} values not in mono spans: {bad}")
+            elif "No factors recorded." not in panel:
+                failures.append(f"{cid}: {title} empty-factor placeholder missing")
+
+        # Incident note: description intact once spans are stripped.
+        note = next((v for v in vals if 'class="mct-note"' in v), "")
+        m = re.search(r'<div class="mct-note">(.*?)</div>', note, re.S)
+        got_desc = _strip_vals(html.unescape(m.group(1))) if m else None
+        if got_desc != claim.accident.description:
+            failures.append(f"{cid}: incident description not rendered intact")
+        if m:
+            bad = _unwrapped_values(m.group(1))
+            if bad:
+                failures.append(f"{cid}: description values not in mono spans: {bad}")
+
+    assert failures == []
