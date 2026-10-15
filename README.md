@@ -32,9 +32,12 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-91 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
+92 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
 API endpoints (all 38 labels round-tripped over HTTP), and the dashboard
-(each claim selected in the sidebar, stamp checked against its label).
+(each of the 38 claims round-tripped through the sidebar: verdict and
+coverage stamps, every fact-grid figure, risk levels, prose values in mono,
+plus the bulk table's columns and the headline metrics — all checked
+against the claim data and the engine).
 Run automatically on every push and PR by
 GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest,
 on Python 3.10 (the `requires-python` floor) and 3.13.
@@ -165,6 +168,23 @@ in isolation, but the README asserts its figures are audited, so a stale
 one undercuts the claim it makes. The count now states what each suite
 covers, updated in the same commit as any test addition.
 
+**Typography: money, dates and identifiers rendered in the body face.**
+The brand book calls the mono rule "the spine of the system" — values a
+handler reads back on a call are mono wherever they appear, *"prose is
+never mono; IDs are never sans"* — and the design section below promises
+"IBM Plex Mono for every claim ID, date and AED figure". Checked against
+what the dashboard actually renders, that claim was false on every claim
+shown: the narrative's repair/excess/payout figures and policy numbers,
+the coverage alerts' dates (*"Accident date 2024-05-15 is outside policy
+period (2024-07-01 to 2025-07-01)"*) and registrations, and the
+new-policy fraud factor's AED figure all sat in prose surfaces with no
+font rule, so they inherited the body sans. The figures themselves were
+correct — what was confidently wrong was every stated claim about how
+they are presented. Values are now wrapped in `.mct-val` mono spans at
+render time (`theme.inline_values()`; the prose around them stays sans,
+per the brand book) with engine output untouched, and the regression test
+fails with 42 findings against the pre-fix app.
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
@@ -245,7 +265,7 @@ motor-claims-triage/
 │   ├── test_api_config.py      # API configuration tests
 │   ├── test_api_integration.py # Endpoint tests (all 38 labels round-tripped)
 │   ├── test_eval.py            # Calibration harness tests
-│   └── test_ui.py              # Dashboard tests (all 38 stamps round-tripped)
+│   └── test_ui.py              # Dashboard tests (38 claims, every figure)
 ├── .github/workflows/ci.yml    # CI: ruff + pytest on push/PR
 ├── LICENSE                     # MIT
 ├── api.py                      # FastAPI endpoint
