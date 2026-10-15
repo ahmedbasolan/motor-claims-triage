@@ -7,9 +7,10 @@ requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
-    # app/ui.py uses the new-style width="stretch" on st.dataframe, which
-    # landed in 1.49.0; on the previous floor (1.28) the dashboard crashed
-    # at the bulk-triage table.
+    # Floor verified against the data, round 5: probed the 1.49.0 wheel
+    # and every Streamlit element the theme styles for elements the app
+    # renders (selectbox, virtual dropdown, metrics, sidebar) exists
+    # there; tests/test_theme.py guards the same targets for drift.
     "streamlit>=1.49.0",
     "pydantic>=2.5.0",
     "httpx>=0.25.0",
