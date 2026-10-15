@@ -69,7 +69,15 @@ selected_claim = next(c for c in ALL_CLAIMS if c.claim_id == selected_id)
 # Run triage (shared wiring: policy resolution + driver context)
 result = triage_with_context(selected_claim, POLICY_MAP, ALL_CLAIMS)
 if result is None:
-    st.error(f"Policy {selected_claim.policy_number} not found - claim cannot be triaged.")
+    # In-brand alert: st.error cannot carry the mono value spans, and this
+    # message names a policy number ("IDs are never sans").
+    st.markdown(
+        alert_html(
+            f"Policy {selected_claim.policy_number} not found - claim cannot be triaged.",
+            "danger",
+        ),
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 # Page header

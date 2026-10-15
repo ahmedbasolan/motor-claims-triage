@@ -170,6 +170,14 @@ def test_sidebar_lists_every_labelled_claim():
     options = {str(o) for o in at.sidebar.selectbox[0].options}
     expected = {f"{cid} — {CLAIMS_BY_ID[cid].driver.name}" for cid in EXPECTED_RECOMMENDATIONS}
     assert options == expected
+    # The open option list is a virtual dropdown portaled outside .stApp with
+    # no font rule of its own, so the mono rule must be in the injected CSS -
+    # the rows expose no DOM contract AppTest could reach.
+    css = next((v for v in _markdown(at) if "stSelectboxVirtualDropdown" in v), "")
+    assert re.search(
+        r'\[data-testid="stSelectboxVirtualDropdown"\] \{[^}]*font-family: var\(--font-mono\)',
+        css,
+    ), "dropdown option list is not mono"
 
 
 def test_default_selection_shows_first_claim():

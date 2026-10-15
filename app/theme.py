@@ -138,6 +138,13 @@ p[data-testid="stWidgetLabel"] {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
+/* The open option list is a virtual dropdown portaled outside .stApp;
+   its rows carry no font rule of their own (verified against the
+   Streamlit 1.64 CSS and Selectbox bundle), so mono flows from the
+   container - option strings carry claim IDs, which are never sans. */
+[data-testid="stSelectboxVirtualDropdown"] {
+  font-family: var(--font-mono);
+}
 
 /* ── Alerts (tinted paper + left rule, no icon balloons) ────────── */
 [data-testid="stAlert"],
