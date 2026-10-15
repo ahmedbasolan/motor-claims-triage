@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.theme import (
     aed,
     alert_html,
+    data_table,
     fact_grid,
     fmt_dt,
     inject_theme,
@@ -181,7 +182,10 @@ for claim in ALL_CLAIMS:
             }
         )
 
-st.dataframe(bulk_results, width="stretch", hide_index=True)
+# In-brand HTML table: the dataframe grid draws cells on a canvas and
+# cannot be styled to the brand (mono cells), so it renders via
+# theme.data_table() like the other signature components.
+st.markdown(data_table(bulk_results), unsafe_allow_html=True)
 
 # Stats
 st.markdown(section_label("Triage statistics"), unsafe_allow_html=True)

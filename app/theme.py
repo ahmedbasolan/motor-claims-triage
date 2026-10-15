@@ -209,20 +209,19 @@ p[data-testid="stWidgetLabel"] {
   color: var(--color-fg-default);
 }
 
-/* ── Dataframe / table ──────────────────────────────────────────── */
-[data-testid="stDataFrame"],
-[data-testid="stArrowTable"] {
+/* ── Data table (mct-table) ───────────────────────────────────────
+   The dataframe grid draws its cells on a canvas - there is no DOM to
+   style, and stArrowTable no longer exists in any Streamlit 1.64
+   bundle - so tables render as in-brand HTML via theme.data_table():
+   sunken header, mono 13px cells, zebra paper-50, horizontal hairlines
+   only, no rounded corners, no vertical rules (brand/BRAND.md). */
+.mct-table {
+  width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-bg-surface);
-}
-[data-testid="stArrowTable"] table {
+  border-radius: 0;
   border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
 }
-[data-testid="stArrowTable"] thead th {
+.mct-table th {
   background: var(--color-bg-sunken);
   color: var(--color-fg-secondary);
   font-family: var(--font-body);
@@ -231,11 +230,19 @@ p[data-testid="stWidgetLabel"] {
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
   border-bottom: 1px solid var(--color-border-strong);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
 }
-[data-testid="stArrowTable"] tbody td {
+.mct-table td {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg-default);
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-2) var(--space-3);
-  color: var(--color-fg-default);
+}
+.mct-table tbody tr:nth-child(even) td {
+  background: var(--paper-50);
 }
 
 /* ── Expander / divider / spinner ───────────────────────────────── */
@@ -567,6 +574,24 @@ def chip(text: str, kind: Kind) -> str:
 def fact_grid(items: list[tuple[str, str]]) -> str:
     rows = "".join(f"<dt>{_esc(label)}</dt><dd>{_esc(value)}</dd>" for label, value in items)
     return f'<dl class="mct-facts">{rows}</dl>'
+
+
+def data_table(rows: list[dict[str, object]]) -> str:
+    """In-brand data table: sunken header, mono cells, zebra, hairlines only.
+
+    Rendered as HTML because the dataframe grid draws its cells on a canvas
+    (no DOM to style), so st.dataframe cannot be brought to the brand. Cell
+    contents are escaped; column order follows the first row's keys.
+    """
+    if not rows:
+        return '<p class="mct-empty">No rows.</p>'
+    headers = list(rows[0])
+    head = "".join(f"<th>{_esc(h)}</th>" for h in headers)
+    body = "".join(
+        "<tr>" + "".join(f"<td>{_esc(row.get(h, ''))}</td>" for h in headers) + "</tr>"
+        for row in rows
+    )
+    return f'<table class="mct-table"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>'
 
 
 def note_block(text: str) -> str:

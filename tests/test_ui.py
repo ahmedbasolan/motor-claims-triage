@@ -241,11 +241,39 @@ def test_every_claim_renders_expected_content():
 def test_bulk_table_matches_ground_truth():
     """The bulk view is checked column by column against the claims and the
     engine for all 38 claims - the whole-table equivalent of the per-claim
-    round-trip."""
+    round-trip. The table is an in-brand HTML component (the dataframe grid
+    draws cells on a canvas and cannot be styled to the brand), so both its
+    contents and its CSS contract are asserted."""
     at = _run()
-    df = at.dataframe[0].value
-    assert len(df) == 38
-    rows = {row["Claim ID"]: row for row in df.to_dict("records")}
+    table = next((v for v in _markdown(at) if 'class="mct-table"' in v), "")
+    assert table, "bulk table not rendered"
+
+    css = next((v for v in _markdown(at) if ".mct-table" in v), "")
+    assert re.search(r"\.mct-table td \{[^}]*font-family: var\(--font-mono\)", css), (
+        "mct-table cells are not mono"
+    )
+
+    headers = [html.unescape(h) for h in re.findall(r"<th>(.*?)</th>", table)]
+    assert headers == [
+        "Claim ID",
+        "Driver",
+        "Vehicle",
+        "Repair cost",
+        "Coverage",
+        "Complexity",
+        "Fraud risk",
+        "Recommendation",
+    ]
+
+    tbody = re.search(r"<tbody>(.*?)</tbody>", table, re.S)
+    row_html = re.findall(r"<tr>(.*?)</tr>", tbody.group(1) if tbody else "", re.S)
+    assert len(row_html) == 38, f"expected 38 rows, got {len(row_html)}"
+    rows = {}
+    for r in row_html:
+        cells = [html.unescape(c) for c in re.findall(r"<td>(.*?)</td>", r)]
+        if cells:
+            rows[cells[0]] = dict(zip(headers, cells))
+
     failures = []
     for cid, exp in EXPECTED_RECOMMENDATIONS.items():
         claim = CLAIMS_BY_ID[cid]
