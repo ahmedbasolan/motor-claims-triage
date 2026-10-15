@@ -32,12 +32,14 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-92 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
+93 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
 API endpoints (all 38 labels round-tripped over HTTP), and the dashboard
 (each of the 38 claims round-tripped through the sidebar: verdict and
 coverage stamps, every fact-grid figure, risk levels, prose values in mono,
 plus the bulk table's columns and the headline metrics — all checked
-against the claim data and the engine).
+against the claim data and the engine), plus a theme liveness check: every
+Streamlit element the theme styles must still exist in the installed
+version's frontend assets.
 Run automatically on every push and PR by
 GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest,
 on Python 3.10 (the `requires-python` floor) and 3.13.
@@ -212,6 +214,31 @@ binds money, identifiers and dates, and wrapping every duration would
 put prose in mono. Cost of the table switch: the bulk view lost the
 dataframe's interactive column sorting; the mono rule is "the spine of
 the system", sorting was not.
+
+**Design: nine theme selector targets styled nothing — the dead-selector
+class, applied to the whole theme.** The table fix above proved a CSS
+rule can target an element that does not exist and nothing catches it,
+so every selector target in `app/theme.py` was checked the same way
+against the shipped Streamlit 1.64 assets, matched as whole quoted
+tokens (`stError` cannot pass on `stErrorBoundary` hits). Seven
+data-testids styled nothing: `baseButton-primary`/`baseButton-secondary`
+(the BaseButton family is gone upstream — buttons are `stButton`),
+`stDivider`, and `stSuccess`/`stError`/`stWarning`/`stInfo` through the
+alert block (only `stAlert` exists). Two data attributes were worse:
+`data-baseweb="select"` was dropped upstream between the declared floor
+and the installed version (33 hits in the 1.49.0 wheel, 0 in 1.64), and
+`data-kind` has **never** appeared in any Streamlit asset — so the
+brand's per-status alert tints ("tinted paper bg, 3px left rule in
+status ink") matched nothing in any version ever supported: the spec now
+lives only where the app controls the markup (`.mct-alert`), and a block
+comment records why the native-alert tints are absent. The same probe
+against the `streamlit>=1.49.0` floor found every testid for elements
+the app actually renders present at the floor, so the floor claim holds
+as stated. Regression: `tests/test_theme.py` parses the theme's CSS and
+asserts every `data-testid`, data attribute and `.st*` class in it
+occurs as a whole token in the installed Streamlit's assets — red on
+the pre-fix tree with all nine dead targets, and an upstream rename now
+fails CI loudly instead of silently unstyling the UI.
 
 ## Design system — "Dossier"
 
