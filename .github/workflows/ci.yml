@@ -33,3 +33,29 @@ jobs:
 
       - name: Test (pytest)
         run: pytest tests/ -q
+
+  render:
+    # Computed styles in a real browser - the checks AppTest cannot make
+    # (markup and CSS text are not rendered fonts). MCT_REQUIRE_BROWSER
+    # turns an unlaunchable browser into a failure rather than a skip,
+    # so this job cannot silently stop testing.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]" playwright
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Render tests (computed styles)
+        run: pytest tests/test_render_browser.py -q
+        env:
+          MCT_REQUIRE_BROWSER: "1"
