@@ -74,7 +74,9 @@ engine.
 ## Defects found by auditing the logic and the stated figures
 
 All were found by checking the rules and stated figures against the data rather
-than by reading the code, and each produced confidently wrong output.
+than by reading the code, and each produced confidently wrong output: decisional
+figures the data refuted, or presentation that contradicted the project's own
+stated rules.
 
 **Fraud: "new policy" was measured as reporting lag.** The indicator computed
 `accident.date - submitted_at` and named the result `policy_age_days`. That gap
@@ -184,6 +186,32 @@ they are presented. Values are now wrapped in `.mct-val` mono spans at
 render time (`theme.inline_values()`; the prose around them stays sans,
 per the brand book) with engine output untouched, and the regression test
 fails with 42 findings against the pre-fix app.
+
+**Design: the bulk table never rendered mono — a dead selector, and a
+canvas no CSS can reach.** The fix above verified its spans and its CSS
+text, but the table's rule targeted `[data-testid="stArrowTable"]`, and
+that testid appears in **zero of the 310 frontend bundles** Streamlit
+1.64 ships: `st.dataframe` (and `st.table`, now migrated to the same
+grid) draws its cells on a canvas, so there is no DOM node any
+`font-family` rule could reach. The README's "mono for every … AED
+figure" and the brand book's "Table: … mono cells at 13px" were still
+false on the dashboard's largest surface — found by reviewing the
+round-3 fix and verified by grepping what the installed Streamlit
+actually renders, not by the audit, which compared cell values (all
+correct) and could not see fonts. The table now renders as in-brand
+HTML (`theme.data_table()`, `.mct-table`): sunken header, mono 13px
+tabular cells, zebra `paper-50`, hairlines only — the brand table spec
+is enforceable because the markup is ours. The review also closed two
+smaller sans surfaces: the selectbox's open option list (a portaled
+virtual dropdown, mono now inherited from a rule on its container) and
+the policy-miss error message (names a policy number; now rendered
+through the in-brand alert helper, which wraps values). Deliberate
+non-change: durations and ratios inside factor sentences ("12 days
+old", "78% of vehicle value") stay in the body face — the brand rule
+binds money, identifiers and dates, and wrapping every duration would
+put prose in mono. Cost of the table switch: the bulk view lost the
+dataframe's interactive column sorting; the mono rule is "the spine of
+the system", sorting was not.
 
 ## Design system — "Dossier"
 
