@@ -32,17 +32,23 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-93 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
+99 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
 API endpoints (all 38 labels round-tripped over HTTP), and the dashboard
 (each of the 38 claims round-tripped through the sidebar: verdict and
 coverage stamps, every fact-grid figure, risk levels, prose values in mono,
 plus the bulk table's columns and the headline metrics — all checked
-against the claim data and the engine), plus a theme liveness check: every
+against the claim data and the engine), a theme liveness check (every
 Streamlit element the theme styles must still exist in the installed
-version's frontend assets.
+version's frontend assets), and six in-browser render checks that read
+computed styles out of a real Chromium — fonts, tints and DOM structure,
+the surfaces AppTest cannot see. The render checks need
+`pip install playwright && python -m playwright install chromium` and
+skip where Chromium is absent.
 Run automatically on every push and PR by
-GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest,
-on Python 3.10 (the `requires-python` floor) and 3.13.
+GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest
+on Python 3.10 (the `requires-python` floor) and 3.13, plus a render job
+that installs Chromium and treats an unlaunchable browser as a failure
+rather than a skip.
 
 ## Calibration
 
@@ -240,6 +246,37 @@ occurs as a whole token in the installed Streamlit's assets — red on
 the pre-fix tree with all nine dead targets, and an upstream rename now
 fails CI loudly instead of silently unstyling the UI.
 
+**Typography: the sidebar's claim ID rendered in Streamlit's default
+sans — a rule against an element that does not exist.** The mono rule
+("IDs are never sans", the brand's spine) had been verified as markup
+and CSS text for two rounds; nothing had read a rendered pixel. The new
+in-browser suite (`tests/test_render_browser.py`) starts the real app
+and reads computed styles out of a real Chromium — and on its first
+run, the most prominent identifier on the dashboard, the claim file
+always on display in the sidebar selector, computed to Streamlit's
+default face. The theme's rule targeted
+`[data-testid="stSelectbox"] div[role="button"]` — BaseWeb-era markup.
+The current selectbox is a react-aria ComboBox: the selected value
+("CLM-001 – …") lives in `input[role="combobox"]`, and no
+`div[role="button"]` exists anywhere in the rendered tree, so the rule
+had been styling nothing while the ID on display was sans. The rule now
+targets the element that actually carries the ID, and the regression
+test asserts the computed font on that input.
+
+**Typography: prose rendered in "Source Sans", not the brand's IBM Plex
+Sans.** The same instrument, the next assertion: computed
+font-family on every markdown container was `"Source Sans", sans-serif`.
+The theme set the brand body face only on `.stApp` — inheritance — and
+Streamlit's own rules on `[data-testid="stMarkdownContainer"]` beat
+inheritance directly, so every prose surface in the app (narrative,
+eyebrows, section labels) wore Streamlit's default typeface while the
+mono values inside it were finally correct. The other half of the mono
+pairing — "prose is never mono" — had been true all along; what nobody
+checked was that prose was in the *brand* face. Markdown containers and
+their `p`/`li` now carry an explicit body-font rule; the render test
+asserts both sides of the pairing on one page (container sans, values
+mono).
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
@@ -255,7 +292,10 @@ claim ID, date and AED figure. Three verdicts, three inks, fixed mapping:
 
 Tokens live in `brand/tokens.json` (source of truth) and `brand/tokens.css`;
 the Streamlit theme is `app/theme.py` + `.streamlit/config.toml`. Changes flow
-from tokens to app — never the reverse. The brand book's anti-pattern list
+from tokens to app — never the reverse. Theme changes are verified two
+ways: `tests/test_theme.py` (every selector target still exists in the
+installed Streamlit) and `tests/test_render_browser.py` (computed styles
+read out of a real browser). The brand book's anti-pattern list
 (gradients, pure black/white, emoji icons, neon status colors, radius > 3px)
 is enforced as review policy.
 
