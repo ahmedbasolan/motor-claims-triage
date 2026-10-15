@@ -2,14 +2,15 @@
 
 The unit tests verify the engine and the API tests verify the HTTP surface;
 these verify what a handler actually sees. The load-bearing tests are
-test_every_claim_shows_ground_truth_stamp (each of the 38 labelled claims is
-selected in the sidebar and the rendered stamp must carry its
-EXPECTED_RECOMMENDATIONS label - a dashboard that shows the wrong verdict,
-stale details, or crashes on selection fails here even when the engine and
-API are correct) and test_every_claim_wraps_prose_values_in_mono_spans (the
-brand mono rule: money, dates and identifiers in prose render in mono spans
-and the prose around them is untouched). test_every_claim_renders_expected_
-content extends the stamp round-trip to every figure on the claim file.
+test_every_claim_renders_expected_content (each of the 38 labelled claims is
+selected in the sidebar; the verdict stamp, every fact-grid figure, the
+coverage stamp and both risk chips must match the claim data and the engine -
+a dashboard that shows the wrong verdict, stale details, or crashes on
+selection fails here even when the engine and API are correct) and
+test_every_claim_wraps_prose_values_in_mono_spans (the brand mono rule:
+money, dates and identifiers in prose render in mono spans, and the prose
+around them is untouched). test_bulk_table_matches_ground_truth checks the
+in-brand bulk table cell by cell for all 38 claims.
 """
 
 import html
