@@ -10,6 +10,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.theme import (
+    Kind,
     aed,
     alert_html,
     data_table,
@@ -37,12 +38,12 @@ st.set_page_config(
 )
 inject_theme()
 
-REC_STYLE = {
+REC_STYLE: dict[Recommendation, tuple[str, Kind]] = {
     Recommendation.FAST_TRACK: ("FAST-TRACK", "pass"),
     Recommendation.STANDARD_REVIEW: ("STANDARD REVIEW", "caution"),
     Recommendation.INVESTIGATE: ("INVESTIGATE", "danger"),
 }
-RISK_STYLE = {
+RISK_STYLE: dict[RiskLevel, tuple[str, Kind]] = {
     RiskLevel.LOW: ("Low", "pass"),
     RiskLevel.MEDIUM: ("Medium", "caution"),
     RiskLevel.HIGH: ("High", "danger"),
