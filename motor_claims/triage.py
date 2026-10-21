@@ -1,10 +1,10 @@
 """Main triage orchestrator for motor claims."""
 
-from src.coverage import check_coverage
-from src.models import Claim, Policy, TriageResult
-from src.narrative import generate_narrative
-from src.recommendation import generate_recommendation
-from src.scoring import driver_key, score_claim
+from motor_claims.coverage import check_coverage
+from motor_claims.models import Claim, Policy, TriageResult
+from motor_claims.narrative import generate_narrative
+from motor_claims.recommendation import generate_recommendation
+from motor_claims.scoring import driver_key, score_claim
 
 
 def triage_claim(

@@ -1,6 +1,6 @@
 """Narrative generation for motor claims triage decisions."""
 
-from src.models import (
+from motor_claims.models import (
     Claim,
     CoverageCheckResult,
     CoverageType,

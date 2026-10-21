@@ -9,8 +9,8 @@ import pytest
 
 from eval.harness import evaluate, indicator_of, sensitivity
 from eval.outcomes import ClaimOutcome, OutcomeSet
-from src import scoring
-from src.models import Recommendation
+from motor_claims import scoring
+from motor_claims.models import Recommendation
 
 
 def _outcome(cid: str, **kw) -> ClaimOutcome:
@@ -75,7 +75,7 @@ class TestIndicatorMapping:
 
 class TestEvaluate:
     def test_agreement_counted(self):
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         claims = generate_claims()
         # Handler always agrees with whatever the engine decides -> full
@@ -101,7 +101,7 @@ class TestEvaluate:
         triage *context*: CLM-007's repeat-claims indicator needs the driver's
         other claims present, so passing a 3-claim slice would silently strip
         the history and the indicator could never fire."""
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         claims = generate_claims()
         # CLM-007 is the investigate claim carrying '2 previous claims'
@@ -129,7 +129,7 @@ class TestEvaluate:
         assert report.fraud_cleared == 2
 
     def test_never_investigated_is_unknown_not_cleared(self):
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         claims = [c for c in generate_claims() if c.claim_id == "CLM-001"]
         report = evaluate({"CLM-001": _outcome("CLM-001")}, claims)
@@ -137,7 +137,7 @@ class TestEvaluate:
         assert report.fraud_cleared == 0
 
     def test_outcomes_for_missing_claims_are_skipped(self):
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         claims = [c for c in generate_claims() if c.claim_id == "CLM-001"]
         report = evaluate({"NOPE": _outcome("NOPE")}, claims)
@@ -164,7 +164,7 @@ class TestSensitivity:
         assert baseline_row[2] == 0
 
     def test_sweep_covers_every_claim(self):
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         rows = sensitivity("CX_HIGH_AT")
         for _, counts, _ in rows:

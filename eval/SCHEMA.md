@@ -7,7 +7,7 @@ be closed with data instead of opinion.
 
 ## Why this data
 
-Every threshold in `src/scoring.py` — 30 days for "new policy", AED 15,000
+Every threshold in `motor_claims/scoring.py` — 30 days for "new policy", AED 15,000
 for "high claim", the 90-day repeat window, the medium/high cut points — is a
 prototype default. The engine is now internally consistent and every rule is
 verified against labelled synthetic claims, but internal consistency cannot

@@ -30,6 +30,15 @@ dev = [
 requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
+# Explicit, because auto-discovery was shipping a broken wheel: it read the
+# old src/ as a src-layout root and packaged its *contents* flat (models.py
+# at top level, no package directory), so an installed wheel failed
+# `import src` while polluting the top level with `models`, `scoring`, ...
+# Verified by installing the built wheel in a clean directory and importing
+# it; see the defect log.
+[tool.setuptools]
+packages = ["motor_claims"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
@@ -43,10 +52,10 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "RUF"]
 testpaths = ["tests"]
 
 [tool.mypy]
-# Gates production code (src, app, eval); tests are covered by ruff and
+# Gates production code (motor_claims, app, eval); tests are covered by ruff and
 # the suite. explicit_package_bases resolves app/ and eval/ as namespace
 # packages so "theme" and "app.theme" are not two modules.
-files = ["src", "app", "eval", "api.py"]
+files = ["motor_claims", "app", "eval", "api.py"]
 check_untyped_defs = true
 explicit_package_bases = true
 ignore_missing_imports = true

@@ -2,7 +2,7 @@
 
 import re
 
-from src.models import (
+from motor_claims.models import (
     Claim,
     CoverageCheckResult,
     CoverageType,

@@ -8,9 +8,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from eval.outcomes import ClaimOutcome
-from src.mock_data import POLICIES, generate_claims
-from src.models import Claim, TriageResult
-from src.triage import triage_with_context
+from motor_claims.mock_data import POLICIES, generate_claims
+from motor_claims.models import Claim, TriageResult
+from motor_claims.triage import triage_with_context
 
 app = FastAPI(
     title="Motor Claims Triage API",

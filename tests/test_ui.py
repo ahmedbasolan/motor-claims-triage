@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from streamlit.testing.v1 import AppTest
 
-from src.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
-from src.triage import triage_with_context
+from motor_claims.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
+from motor_claims.triage import triage_with_context
 
 _APP_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app", "ui.py"

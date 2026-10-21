@@ -18,8 +18,8 @@ from fastapi.testclient import TestClient
 
 from api import app
 from eval.outcomes import ClaimOutcome, OutcomeSet
-from src.mock_data import EXPECTED_RECOMMENDATIONS
-from src.models import Recommendation
+from motor_claims.mock_data import EXPECTED_RECOMMENDATIONS
+from motor_claims.models import Recommendation
 
 client = TestClient(app)
 

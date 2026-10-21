@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, timedelta
 
-from src.models import (
+from motor_claims.models import (
     AccidentDetails,
     Claim,
     CoverageType,
