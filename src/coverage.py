@@ -108,14 +108,15 @@ def check_coverage(claim: Claim, policy: Policy) -> CoverageCheckResult:
             exclusions.append(exclusion)
             notes.append(f"Use case '{keyword}' is excluded under policy terms")
 
-    # Check claim type coverage based on policy type
-    if policy.coverage_type == CoverageType.THIRD_PARTY:
-        # Third party only covers damage to other parties, not own vehicle
-        if "own vehicle" in desc_lower or "my car" in desc_lower:
-            notes.append(
-                "Third-party policy: own vehicle damage may not be covered. "
-                "Only liability to other parties is covered."
-            )
+    # Check claim type coverage based on policy type. Third party only
+    # covers damage to other parties, not own vehicle.
+    if policy.coverage_type == CoverageType.THIRD_PARTY and (
+        "own vehicle" in desc_lower or "my car" in desc_lower
+    ):
+        notes.append(
+            "Third-party policy: own vehicle damage may not be covered. "
+            "Only liability to other parties is covered."
+        )
 
     # Determine if covered
     is_covered = len(exclusions) == 0
