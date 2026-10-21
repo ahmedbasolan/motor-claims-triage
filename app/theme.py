@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -556,7 +557,7 @@ def fact_grid(items: list[tuple[str, str]]) -> str:
     return f'<dl class="mct-facts">{rows}</dl>'
 
 
-def data_table(rows: list[dict[str, object]]) -> str:
+def data_table(rows: Sequence[Mapping[str, object]]) -> str:
     """In-brand data table: sunken header, mono cells, zebra, hairlines only.
 
     Rendered as HTML because the dataframe grid draws its cells on a canvas
