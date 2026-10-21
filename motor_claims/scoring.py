@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-from src.models import Claim, Policy, RiskLevel, ScoringResult
+from motor_claims.models import Claim, Policy, RiskLevel, ScoringResult
 
 # ── Thresholds ───────────────────────────────────────────────────────────
 # Every tunable number lives here, read at call time, so the calibration

@@ -25,9 +25,9 @@ from app.theme import (
     stamp,
     wordmark,
 )
-from src.mock_data import POLICIES, generate_claims
-from src.models import Recommendation, RiskLevel
-from src.triage import triage_with_context
+from motor_claims.mock_data import POLICIES, generate_claims
+from motor_claims.models import Recommendation, RiskLevel
+from motor_claims.triage import triage_with_context
 
 st.set_page_config(
     page_title="Motor Claims Triage",

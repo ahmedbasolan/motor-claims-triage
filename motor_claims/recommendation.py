@@ -1,6 +1,6 @@
 """Recommendation engine for motor claims triage."""
 
-from src.models import (
+from motor_claims.models import (
     CoverageCheckResult,
     Recommendation,
     RiskLevel,

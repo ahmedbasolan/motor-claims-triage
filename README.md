@@ -10,7 +10,7 @@ would need to say for the thresholds to be right, and which thresholds the
 current data can even distinguish.
 
 Every claim carries a ground-truth label (`EXPECTED_RECOMMENDATIONS` in
-`src/mock_data.py`), and the dataset is built so that every rule in the engine
+`motor_claims/mock_data.py`), and the dataset is built so that every rule in the engine
 fires on at least one claim. Tests assert the engine reproduces the labels and
 that each rule branch is exercised — a silent behaviour change fails the suite.
 
@@ -47,7 +47,7 @@ the surfaces AppTest cannot see. The render checks need
 skip where Chromium is absent.
 Run automatically on every push and PR by
 GitHub Actions (`.github/workflows/ci.yml`): ruff check (with the B, C4,
-SIM and RUF rule families), ruff format, mypy over `src`/`app`/`eval`/`api.py`,
+SIM and RUF rule families), ruff format, mypy over `motor_claims`/`app`/`eval`/`api.py`,
 pytest on Python 3.10 (the `requires-python` floor) and 3.13, plus a
 render job that installs Chromium and treats an unlaunchable browser as
 a failure rather than a skip.
@@ -69,7 +69,7 @@ python -m eval.harness    # calibration report + threshold sensitivity
   flagged claims SIU confirmed (precision) and the share of confirmed fraud it
   caught (recall).
 - **Threshold sensitivity** — needs no outcome data: sweeps every threshold in
-  `src/scoring.py` and counts how many of the 38 labelled claims change
+  `motor_claims/scoring.py` and counts how many of the 38 labelled claims change
   recommendation. On the current dataset `NEW_POLICY_DAYS`, `REPEAT_WINDOW_DAYS`
   and `FR_HIGH_AT` move nothing at all (the data cannot distinguish them);
   only `CX_HIGH_AT` (up to 3 claims) and `HIGH_CLAIM_AED` (1 claim) currently
@@ -312,6 +312,22 @@ wrong was the status and the sourcing: the section now names each instrument
 and clause, states the guidance-not-law status, and records that
 "CBUAE-aligned" is a design posture nobody has reviewed, not certification.
 
+**Build: the wheel shipped the engine as loose top-level modules — the
+installed package could not import itself.** Found while auditing the build
+for the `src` → `motor_claims` rename (auto-discovery must be re-checked
+whenever a layout changes): setuptools read the old `src/` as a src-layout
+root and packaged its *contents* flat, so the wheel held `models.py`,
+`scoring.py`, `triage.py`, … at the top level with no package directory at
+all. Verified both directions in a clean directory: installing the wheel
+fails `import src` while *succeeding* at `import models` — polluting every
+environment that installs it with generic top-level module names that would
+shadow any other `models`. The repo only worked because every documented
+command runs from the checkout, where the working directory supplies the
+package ahead of anything installed. `packages = ["motor_claims"]` is now
+declared explicitly instead of inferred, and the built wheel was re-verified:
+it carries `motor_claims/`, and `import motor_claims.triage` resolves from a
+directory with no checkout on the path.
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
@@ -375,7 +391,7 @@ motor-claims-triage/
 │   └── mark.svg           # Stamp mark (favicon)
 ├── .streamlit/
 │   └── config.toml        # Base Streamlit theme (Dossier palette)
-├── src/
+├── motor_claims/
 │   ├── models.py          # Pydantic data models
 │   ├── coverage.py        # Coverage check logic
 │   ├── scoring.py         # Complexity & fraud scoring

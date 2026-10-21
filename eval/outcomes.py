@@ -16,7 +16,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.models import Recommendation
+from motor_claims.models import Recommendation
 
 
 class ClaimOutcome(BaseModel):

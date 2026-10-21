@@ -20,10 +20,10 @@ from collections import Counter
 from dataclasses import dataclass, field
 
 from eval.outcomes import ClaimOutcome
-from src import scoring
-from src.mock_data import POLICIES, generate_claims
-from src.models import Claim, TriageResult
-from src.triage import triage_with_context
+from motor_claims import scoring
+from motor_claims.mock_data import POLICIES, generate_claims
+from motor_claims.models import Claim, TriageResult
+from motor_claims.triage import triage_with_context
 
 # Fraud factor text -> stable indicator key. The engine narrates factors as
 # prose; calibration needs to group them. Substring match, not prefix: the

@@ -1,6 +1,6 @@
 """Motor Claims Triage & Decision-Support Copilot."""
 
-from src.models import (
+from motor_claims.models import (
     Claim,
     CoverageType,
     Policy,
@@ -8,7 +8,7 @@ from src.models import (
     RiskLevel,
     TriageResult,
 )
-from src.triage import triage_claim
+from motor_claims.triage import triage_claim
 
 __all__ = [
     "Claim",

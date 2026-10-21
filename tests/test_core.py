@@ -7,8 +7,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import date, datetime
 
-from src.coverage import check_coverage
-from src.models import (
+from motor_claims.coverage import check_coverage
+from motor_claims.models import (
     AccidentDetails,
     Claim,
     CoverageType,
@@ -19,9 +19,9 @@ from src.models import (
     RiskLevel,
     VehicleDetails,
 )
-from src.recommendation import generate_recommendation
-from src.scoring import score_complexity, score_fraud_risk
-from src.triage import triage_claim, triage_with_context
+from motor_claims.recommendation import generate_recommendation
+from motor_claims.scoring import score_complexity, score_fraud_risk
+from motor_claims.triage import triage_claim, triage_with_context
 
 
 def _make_claim(**overrides) -> Claim:
@@ -132,7 +132,7 @@ class TestCoverage:
     def test_driver_key_normalises_for_claim_grouping(self):
         """The repeat-claims window groups claims by driver; grouping must not
         miss prior claims because a name was typed differently."""
-        from src.scoring import driver_key
+        from motor_claims.scoring import driver_key
 
         assert driver_key("John  Smith") == driver_key("JOHN SMITH")
         assert driver_key("John Smith") != driver_key("John Smith Jr")
@@ -348,7 +348,7 @@ class TestScoring:
 
 class TestRecommendation:
     def test_fast_track(self):
-        from src.models import CoverageCheckResult, ScoringResult
+        from motor_claims.models import CoverageCheckResult, ScoringResult
 
         coverage = CoverageCheckResult(
             is_covered=True,
@@ -364,7 +364,7 @@ class TestRecommendation:
         assert generate_recommendation(coverage, scoring) == Recommendation.FAST_TRACK
 
     def test_investigate_high_fraud(self):
-        from src.models import CoverageCheckResult, ScoringResult
+        from motor_claims.models import CoverageCheckResult, ScoringResult
 
         coverage = CoverageCheckResult(
             is_covered=True,
@@ -380,7 +380,7 @@ class TestRecommendation:
         assert generate_recommendation(coverage, scoring) == Recommendation.INVESTIGATE
 
     def test_investigate_not_covered(self):
-        from src.models import CoverageCheckResult, ScoringResult
+        from motor_claims.models import CoverageCheckResult, ScoringResult
 
         coverage = CoverageCheckResult(
             is_covered=False,
@@ -478,7 +478,7 @@ class TestNarrativeFinancials:
 
 class TestMockData:
     def test_generates_labelled_claims(self):
-        from src.mock_data import EXPECTED_RECOMMENDATIONS, generate_claims
+        from motor_claims.mock_data import EXPECTED_RECOMMENDATIONS, generate_claims
 
         claims = generate_claims()
         assert len(claims) == len(EXPECTED_RECOMMENDATIONS) == 38
@@ -489,7 +489,7 @@ class TestMockData:
         shared one accident date, fabricating same-day accidents and
         compressing the repeat-claims window. Claims with different labels
         must get different dates."""
-        from src.mock_data import generate_claims
+        from motor_claims.mock_data import generate_claims
 
         claims = generate_claims()
         # The six claims that used to collide on 2024-09-01.
@@ -512,7 +512,7 @@ class TestMockData:
         assert collisions == {}, collisions
 
     def test_all_claims_have_valid_policies(self):
-        from src.mock_data import POLICIES, generate_claims
+        from motor_claims.mock_data import POLICIES, generate_claims
 
         policy_map = {p.policy_number: p for p in POLICIES}
         claims = generate_claims()
@@ -520,7 +520,7 @@ class TestMockData:
             assert claim.policy_number in policy_map
 
     def test_triage_all_claims(self):
-        from src.mock_data import POLICIES, generate_claims
+        from motor_claims.mock_data import POLICIES, generate_claims
 
         policy_map = {p.policy_number: p for p in POLICIES}
         claims = generate_claims()
@@ -537,7 +537,7 @@ class TestGroundTruth:
     shipping."""
 
     def _triage_all(self):
-        from src.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
+        from motor_claims.mock_data import EXPECTED_RECOMMENDATIONS, POLICIES, generate_claims
 
         policy_map = {p.policy_number: p for p in POLICIES}
         claims = generate_claims()
