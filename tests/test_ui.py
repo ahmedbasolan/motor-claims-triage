@@ -281,7 +281,7 @@ def test_bulk_table_matches_ground_truth():
     for r in row_html:
         cells = [html.unescape(c) for c in re.findall(r"<td>(.*?)</td>", r)]
         if cells:
-            rows[cells[0]] = dict(zip(headers, cells))
+            rows[cells[0]] = dict(zip(headers, cells, strict=True))
 
     failures = []
     for cid, exp in EXPECTED_RECOMMENDATIONS.items():
