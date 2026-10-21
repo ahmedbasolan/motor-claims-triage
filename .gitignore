@@ -32,3 +32,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Captured via POST /feedback; runtime data, never committed
+eval/captured_outcomes.jsonl
