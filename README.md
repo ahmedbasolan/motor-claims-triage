@@ -97,7 +97,8 @@ is the same one a pilot would run.
 All were found by checking the rules and stated figures against the data rather
 than by reading the code, and each produced confidently wrong output: decisional
 figures the data refuted, or presentation that contradicted the project's own
-stated rules.
+stated rules. The regulatory entry at the end was found the same way — a stated
+claim checked against its primary source instead of against the code.
 
 **Fraud: "new policy" was measured as reporting lag.** The indicator computed
 `accident.date - submitted_at` and named the result `policy_age_days`. That gap
@@ -290,6 +291,27 @@ their `p`/`li` now carry an explicit body-font rule; the render test
 asserts both sides of the pairing on one page (container sans, values
 mono).
 
+**Regulatory: "CBUAE requirements" overstated guidance as binding rules —
+and cited nothing.** The context section claimed the prototype "addresses
+CBUAE requirements for: explainable AI decisions… auditability… consistent
+coverage… fraud detection", naming no instrument, so no reader could check
+whether the regulator asks for any of it — and the word "requirements" said
+binding law. Checked against the CBUAE Rulebook (October 2026): the two
+instruments that actually cover AI at licensed financial institutions are
+the *Guidelines for Financial Institutions Adopting Enabling Technologies*
+(issued 15/11/2021, in force) and the *Guidance Note on Consumer Protection
+and Responsible Adoption and Use of AI/ML* (issued 11/2/2026, covering LFIs
+"including insurance providers", whose definition of a high-impact decision
+uses an insurance claim as its worked example). Both are supervisory
+guidance — "should" language, and the Guidance Note "shall supplement and
+not replace any laws, regulations or directives" — not binding requirements.
+The four claims themselves survived the check: explainability (Guidelines
+2.27, Note §4), auditability (Note §2 and §5a, "audit trails"), consistency
+(Guidelines 2.29, Note §3c), fraud detection (Note §5e). What was confidently
+wrong was the status and the sourcing: the section now names each instrument
+and clause, states the guidance-not-law status, and records that
+"CBUAE-aligned" is a design posture nobody has reviewed, not certification.
+
 ## Design system — "Dossier"
 
 The UI runs on a branded design system in `brand/` (see `brand/BRAND.md` for the
@@ -385,8 +407,35 @@ motor-claims-triage/
 
 ## UAE Insurance Context
 
-This prototype addresses CBUAE requirements for:
-- Explainable AI decisions in claims processing
-- Auditability of triage reasoning
-- Consistent handling of coverage logic
-- Fraud detection in motor claims
+Insurance in the UAE is supervised by the Central Bank of the UAE (CBUAE),
+whose Rulebook explicitly covers "licensed financial institutions, including
+insurance providers". Every regulatory claim here was checked against the
+CBUAE Rulebook itself (as of October 2026) rather than assumed, and each is
+tied to the instrument and clause that carries it:
+
+| What the prototype does | Where CBUAE asks for it |
+|---|---|
+| Stated, readable reasons on every recommendation | *Guidelines for Financial Institutions Adopting Enabling Technologies* 2.27 (in force): material AI models must be "reliable, transparent, and explainable"; *AI Guidance Note* §4: clear disclosure of how AI makes decisions, for high-impact decisions — defined using an insurance claim as the worked example |
+| An audit trail of every triage step (rules, factors, scores, rationale) | *AI Guidance Note* §2 (governance, board reporting, internal-audit roles, AI inventory) and §5a ("clear provenance and audit trails") |
+| The same coverage rules applied the same way to every claim | *Guidelines* 2.29 (AI outcomes "objective, consistent, ethical, and fair"); *AI Guidance Note* §3c (AI-supported decisions consistent with fair treatment) |
+| Fraud factors raised for SIU attention | *AI Guidance Note* §5e (LFIs "should … try to utilise, where feasible, AI to identify potential fraud") |
+| Recommendations only — a human decides | *AI Guidance Note* §7: meaningful human oversight, "human-in-the-loop" where "a human decision maker retains full authority" |
+
+Instruments, so the table can be re-verified at source:
+
+- **Guidelines for Financial Institutions Adopting Enabling Technologies** —
+  CBUAE Rulebook, issued 15/11/2021, in force; scope: "all Institutions
+  licensed and supervised by the Supervisory Authorities" that use enabling
+  technologies, filed under *All Licensed Financial Institutions*.
+- **Guidance Note on Consumer Protection and Responsible Adoption and Use
+  of Artificial Intelligence and Machine Learning by Licensed Financial
+  Institutions** — issued 11/2/2026; applies to LFIs "including insurance
+  providers", and defines a *high-impact decision* as one that materially
+  affects a customer's access to products or services, "for example … an
+  insurance claim".
+
+Both are supervisory guidance — "should" language, and the Guidance Note
+"shall supplement and not replace any laws, regulations or directives". So
+"CBUAE-aligned" (the sidebar tagline) means the design follows these clauses:
+it is not compliance certification, and nothing in this prototype has been
+reviewed or approved by the CBUAE.
