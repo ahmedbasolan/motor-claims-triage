@@ -45,10 +45,11 @@ the surfaces AppTest cannot see. The render checks need
 `pip install playwright && python -m playwright install chromium` and
 skip where Chromium is absent.
 Run automatically on every push and PR by
-GitHub Actions (`.github/workflows/ci.yml`): ruff check, ruff format, pytest
-on Python 3.10 (the `requires-python` floor) and 3.13, plus a render job
-that installs Chromium and treats an unlaunchable browser as a failure
-rather than a skip.
+GitHub Actions (`.github/workflows/ci.yml`): ruff check (with the B, C4,
+SIM and RUF rule families), ruff format, mypy over `src`/`app`/`eval`,
+pytest on Python 3.10 (the `requires-python` floor) and 3.13, plus a
+render job that installs Chromium and treats an unlaunchable browser as
+a failure rather than a skip.
 
 ## Calibration
 
