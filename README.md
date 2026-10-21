@@ -32,8 +32,9 @@ that each rule branch is exercised — a silent behaviour change fails the suite
 | Fraud | 5 factors: recently-purchased policy with high claim, repeat claims in 90 days (2 tiers), story inconsistency (4 keyword families), thin documentation for a high-value estimate |
 | Decision | 3 outcomes, each with a stated reason: fast-track, standard review, investigate |
 
-99 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
-API endpoints (all 38 labels round-tripped over HTTP), and the dashboard
+105 tests: `pytest tests/ -v` — engine and ground-truth labels, eval harness,
+API endpoints (all 38 labels round-tripped over HTTP, plus outcome capture at
+`/feedback`), and the dashboard
 (each of the 38 claims round-tripped through the sidebar: verdict and
 coverage stamps, every fact-grid figure, risk levels, prose values in mono,
 plus the bulk table's columns and the headline metrics — all checked
@@ -46,7 +47,7 @@ the surfaces AppTest cannot see. The render checks need
 skip where Chromium is absent.
 Run automatically on every push and PR by
 GitHub Actions (`.github/workflows/ci.yml`): ruff check (with the B, C4,
-SIM and RUF rule families), ruff format, mypy over `src`/`app`/`eval`,
+SIM and RUF rule families), ruff format, mypy over `src`/`app`/`eval`/`api.py`,
 pytest on Python 3.10 (the `requires-python` floor) and 3.13, plus a
 render job that installs Chromium and treats an unlaunchable browser as
 a failure rather than a skip.
@@ -79,6 +80,17 @@ supply — fields already recorded in ordinary claims handling, deidentified,
 joined on claim ID only. `eval/demo_outcomes.json` is **synthetic** and
 labelled as such: it demonstrates the harness, it validates nothing about the
 engine.
+
+Until that partner data exists, `POST /feedback` lets the prototype accrue its
+own calibration-shaped data: the body **is** the harness schema
+(`eval.outcomes.ClaimOutcome`), validated field-for-field, and each accepted
+record is appended as one JSON per line to `FEEDBACK_PATH` (default
+`eval/captured_outcomes.jsonl`, gitignored) — a file the harness reads as-is.
+The response freezes the engine's own recommendation alongside the handler's
+decision, and a duplicate `claim_id` is refused (409) so the extract keeps
+OutcomeSet's one-outcome-per-claim invariant from the moment it is written.
+Captured demo data is not evidence about real claims, but the capture loop
+is the same one a pilot would run.
 
 ## Defects found by auditing the logic and the stated figures
 
@@ -328,6 +340,7 @@ pytest tests/ -v
 | `/triage_claim` | POST | Triage a new claim |
 | `/triage_claim/{id}` | POST | Triage an existing claim |
 | `/triage_all` | GET | Triage all claims |
+| `/feedback` | POST | Record a handler decision/outcome (body = `eval.outcomes.ClaimOutcome`); appends JSONL to `FEEDBACK_PATH`, 409 on duplicate `claim_id` |
 
 ## Project Structure
 
@@ -361,10 +374,12 @@ motor-claims-triage/
 │   ├── test_api_config.py      # API configuration tests
 │   ├── test_api_integration.py # Endpoint tests (all 38 labels round-tripped)
 │   ├── test_eval.py            # Calibration harness tests
-│   └── test_ui.py              # Dashboard tests (38 claims, every figure)
-├── .github/workflows/ci.yml    # CI: ruff + pytest on push/PR
+│   ├── test_ui.py              # Dashboard tests (38 claims, every figure)
+│   ├── test_theme.py           # Theme-selector liveness vs installed Streamlit
+│   └── test_render_browser.py  # Chromium computed-style render checks
+├── .github/workflows/ci.yml    # CI: ruff + format + mypy + pytest + render job
 ├── LICENSE                     # MIT
-├── api.py                      # FastAPI endpoint
+├── api.py                      # FastAPI endpoints (triage + /feedback capture)
 └── pyproject.toml              # Dependencies
 ```
 
