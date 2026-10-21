@@ -46,7 +46,7 @@ testpaths = ["tests"]
 # Gates production code (src, app, eval); tests are covered by ruff and
 # the suite. explicit_package_bases resolves app/ and eval/ as namespace
 # packages so "theme" and "app.theme" are not two modules.
-files = ["src", "app", "eval"]
+files = ["src", "app", "eval", "api.py"]
 check_untyped_defs = true
 explicit_package_bases = true
 ignore_missing_imports = true
