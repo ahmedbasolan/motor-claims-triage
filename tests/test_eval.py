@@ -150,13 +150,13 @@ class TestSensitivity:
         """The sweep mutates scoring module state; it must not leak."""
         before = scoring.NEW_POLICY_DAYS
         sensitivity("NEW_POLICY_DAYS")
-        assert scoring.NEW_POLICY_DAYS == before
+        assert before == scoring.NEW_POLICY_DAYS
 
     def test_restored_even_if_a_value_raises(self):
         before = scoring.FR_HIGH_AT
         with pytest.raises(ValueError):
             sensitivity("FR_HIGH_AT", values=[5, "not-an-int"])  # type: ignore[list-item]
-        assert scoring.FR_HIGH_AT == before
+        assert before == scoring.FR_HIGH_AT
 
     def test_baseline_row_reports_zero_changes(self):
         rows = sensitivity("CX_HIGH_AT")

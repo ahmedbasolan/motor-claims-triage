@@ -241,7 +241,7 @@ class TestScoring:
 
     def test_low_fraud_risk(self):
         claim = _make_claim()
-        level, factors = score_fraud_risk(claim)
+        level, _ = score_fraud_risk(claim)
         assert level == RiskLevel.LOW
 
     def test_fraud_new_policy_high_claim(self):
@@ -273,14 +273,14 @@ class TestScoring:
         skipped rather than guessed from claim dates."""
         claim = _make_claim(submitted_at=datetime(2024, 9, 10))
         claim.repair_estimate.estimated_cost = 62000
-        level, factors = score_fraud_risk(claim)
+        _, factors = score_fraud_risk(claim)
         assert not any("New policy" in f for f in factors), factors
 
     def test_low_value_claim_on_new_policy_is_not_flagged(self):
         claim = _make_claim(submitted_at=datetime(2024, 9, 10))
         claim.repair_estimate.estimated_cost = 4000
         policy = _make_policy(policy_start_date=date(2024, 9, 1))
-        level, factors = score_fraud_risk(claim, policy=policy)
+        _, factors = score_fraud_risk(claim, policy=policy)
         assert not any("New policy" in f for f in factors), factors
 
     def test_claim_predating_inception_is_not_called_a_new_policy(self):
@@ -290,7 +290,7 @@ class TestScoring:
         claim = _make_claim(submitted_at=datetime(2024, 8, 10))
         claim.repair_estimate.estimated_cost = 45000
         policy = _make_policy(policy_start_date=date(2024, 9, 23))  # age -44 days
-        level, factors = score_fraud_risk(claim, policy=policy)
+        _, factors = score_fraud_risk(claim, policy=policy)
         assert not any("New policy" in f for f in factors), factors
         assert not any("days old" in f for f in factors), factors
 
@@ -329,7 +329,7 @@ class TestScoring:
         exactly = _make_claim()
         exactly.claim_id = "TEST-002"
         exactly.accident.date = datetime(2024, 6, 12)  # exactly 90 days before
-        level, factors = score_fraud_risk(claim, all_claims_for_driver=[claim, exactly])
+        _, factors = score_fraud_risk(claim, all_claims_for_driver=[claim, exactly])
         assert any("previous claim" in f for f in factors)
 
     def test_combined_fraud_indicators_reach_high(self):

@@ -128,13 +128,16 @@ def score_fraud_risk(
     # negative ages are skipped rather than narrated as a fraud factor.
     if policy is not None:
         policy_age_days = (claim.submitted_at.date() - policy.policy_start_date).days
-        if 0 <= policy_age_days < NEW_POLICY_DAYS:
-            if claim.repair_estimate and claim.repair_estimate.estimated_cost > HIGH_CLAIM_AED:
-                score += FR_NEW_POLICY
-                factors.append(
-                    f"New policy ({policy_age_days} days old) with high claim "
-                    f"AED {claim.repair_estimate.estimated_cost:,.0f}"
-                )
+        if (
+            0 <= policy_age_days < NEW_POLICY_DAYS
+            and claim.repair_estimate
+            and claim.repair_estimate.estimated_cost > HIGH_CLAIM_AED
+        ):
+            score += FR_NEW_POLICY
+            factors.append(
+                f"New policy ({policy_age_days} days old) with high claim "
+                f"AED {claim.repair_estimate.estimated_cost:,.0f}"
+            )
 
     # Repeated claims for same driver/vehicle in short period.
     #
@@ -182,10 +185,9 @@ def score_fraud_risk(
                     break
 
     # High repair cost without clear documentation
-    if claim.repair_estimate:
-        if not claim.documents or len(claim.documents) < MIN_DOCS:
-            score += FR_THIN_DOCS
-            factors.append("Limited documentation for high-value repair estimate")
+    if claim.repair_estimate and (not claim.documents or len(claim.documents) < MIN_DOCS):
+        score += FR_THIN_DOCS
+        factors.append("Limited documentation for high-value repair estimate")
 
     # Determine risk level
     if score >= FR_HIGH_AT:

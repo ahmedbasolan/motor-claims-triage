@@ -12,10 +12,10 @@ from src.triage import triage_claim
 
 __all__ = [
     "Claim",
-    "Policy",
-    "TriageResult",
     "CoverageType",
+    "Policy",
     "Recommendation",
     "RiskLevel",
+    "TriageResult",
     "triage_claim",
 ]

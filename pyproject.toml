@@ -20,6 +20,7 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "ruff>=0.1.0",
+    "mypy>=1.10.0",
 ]
 
 [build-system]
@@ -33,8 +34,19 @@ build-backend = "setuptools.build_meta"
 line-length = 100
 target-version = "py310"
 
+# B/C4/SIM/RUF added in the round-7 quality pass; every finding was
+# fixed rather than ignored (see git history).
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+# Gates production code (src, app, eval); tests are covered by ruff and
+# the suite. explicit_package_bases resolves app/ and eval/ as namespace
+# packages so "theme" and "app.theme" are not two modules.
+files = ["src", "app", "eval"]
+check_untyped_defs = true
+explicit_package_bases = true
+ignore_missing_imports = true
