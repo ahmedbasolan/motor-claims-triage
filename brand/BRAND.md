@@ -171,6 +171,9 @@ Hard bans. A PR containing any of these fails review:
 
 - **Wordmark:** "Motor Claims Triage" set in Source Serif 4 Semibold, ink.
   Companion tag in IBM Plex Mono 11px tracked: `CBUAE-ALIGNED PROTOTYPE`.
+  The tag claims alignment with the named CBUAE guidance clauses in README
+  "UAE Insurance Context" — not compliance, certification, or approval —
+  and must never be stated more strongly than that section supports.
   No lockup graphics, no swooshes.
 - **Mark:** `brand/mark.svg` — oxblood stamp square with serif M. Used as
   favicon and empty-state mark only. Not placed next to every heading.
