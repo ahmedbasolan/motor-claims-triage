@@ -420,6 +420,18 @@ class TestTriage:
         assert "Fraud Risk:" in result.narrative
         assert "Recommendation:" in result.narrative
 
+    def test_each_labelled_line_is_its_own_markdown_paragraph(self):
+        # The dashboard renders the narrative as Markdown, which joins lines
+        # separated by a single newline: "Repair Cost ... Excess ... Payout"
+        # and "Recommendation: X This claim requires ..." each ran together.
+        result = triage_claim(_make_claim(), _make_policy())
+        lines = result.narrative.split("\n")
+        for i, line in enumerate(lines[1:], start=1):
+            if line.startswith("**"):
+                assert lines[i - 1] == "", f"no blank line before {line!r}"
+        rec = next(i for i, line in enumerate(lines) if line.startswith("**Recommendation:**"))
+        assert lines[rec + 1] == ""
+
 
 class TestNarrativeFinancials:
     """The narrative states figures a handler may act on, so the payout must

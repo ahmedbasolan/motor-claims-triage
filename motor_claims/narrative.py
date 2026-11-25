@@ -61,12 +61,16 @@ def generate_narrative(
             sections.append(f"  - {factor}")
     sections.append("")
 
-    # Financial summary
+    # Financial summary. Each figure is its own paragraph: the narrative is
+    # Markdown, which joins single-newline lines, so the dashboard used to show
+    # "Repair Cost: AED 3,500 Excess: AED 500 Net Payout: ..." as one run-on line.
     if claim.repair_estimate:
         sections.append(
             f"**Estimated Repair Cost:** AED {claim.repair_estimate.estimated_cost:,.0f}"
         )
+        sections.append("")
         sections.append(f"**Excess:** AED {coverage.excess_amount:,.0f}")
+        sections.append("")
         # The payout figure is only stated when it means something. It used to
         # be printed unconditionally, so a claim denied on an exclusion still
         # read "Estimated Net Payout: AED 2,000" - a handler skimming the
@@ -94,6 +98,7 @@ def generate_narrative(
             payable = min(net, coverage.max_payout) if net > 0 else 0
             sections.append(f"**Estimated Net Payout:** AED {payable:,.0f}")
             if capped:
+                sections.append("")
                 sections.append(
                     f"Capped at the policy sum insured (AED {coverage.max_payout:,.0f}); "
                     "the repair estimate exceeds the policy limit."
@@ -102,6 +107,7 @@ def generate_narrative(
 
     # Recommendation
     sections.append(f"**Recommendation:** {RECOMMENDATION_LABELS[recommendation]}")
+    sections.append("")
 
     # Final rationale
     if recommendation == Recommendation.FAST_TRACK:
