@@ -165,6 +165,14 @@ def test_narrative_values_are_mono_and_prose_stays_sans(page):
     assert _style(page, NARRATIVE, "fontFamily") == BODY
 
 
+def test_section_labels_sit_on_their_rule_with_space_above(page):
+    # Streamlit's own `hr { margin: 2em 0 }` once outranked .mct-rule, so each
+    # label floated 32px above its rule and ran into the block before it.
+    assert _style(page, ".mct-rule", "marginTop") == "4px"
+    assert _style(page, ".mct-rule", "marginBottom") == "12px"
+    assert _style(page, ".mct-section", "paddingTop") == "24px"
+
+
 def test_bulk_table_matches_the_brand_table_spec(page):
     # Brand table: sunken header, mono 13px tabular cells, zebra paper-50.
     assert page.locator(".mct-table tbody tr").count() == 38

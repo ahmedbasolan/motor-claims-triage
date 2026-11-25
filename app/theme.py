@@ -266,13 +266,16 @@ p[data-testid="stWidgetLabel"] {
   color: var(--color-fg-muted);
   margin: 0 0 var(--space-2) 0;
 }
-.mct-rule {
+/* Streamlit styles every markdown hr with `margin: 2em 0` at a higher
+   specificity than a bare class, which put the whole gap between a section
+   label and its own rule and left the label hugging the block above. */
+[data-testid="stMarkdownContainer"] hr.mct-rule {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: var(--space-1) 0 var(--space-3) 0;
 }
-.mct-section { margin-top: var(--space-6); }
-.mct-section:first-child { margin-top: 0; }
+/* Padding, not margin: the wrapper is always its container's first child. */
+.mct-section { padding-top: var(--space-5); }
 
 .mct-title {
   font-family: var(--font-display);
@@ -540,7 +543,10 @@ def wordmark(tagline: str = "CBUAE-aligned prototype") -> str:
 
 
 def section_label(text: str) -> str:
-    return f'<p class="mct-eyebrow">{_esc(text)}</p><hr class="mct-rule">'
+    return (
+        f'<div class="mct-section"><p class="mct-eyebrow">{_esc(text)}</p>'
+        '<hr class="mct-rule"></div>'
+    )
 
 
 def stamp(text: str, kind: Kind, compact: bool = False) -> str:
